@@ -297,13 +297,17 @@ export async function deleteFile(fileId: string): Promise<void> {
 export async function shareFilePublicly(fileId: string): Promise<void> {
   if (webAppUrl) {
     try {
-      await callWebApp('shareFile', { fileId });
-      return;
+      const res = await callWebApp('shareFile', { fileId });
+      if (res && res.success) {
+        console.log(`[Apps Script] Đã chia sẻ công khai thành công file qua Web App: ${fileId}`);
+        return;
+      }
     } catch (err) {
-      console.warn(`[Apps Script] Không thể chia sẻ file ${fileId} qua Web App:`, err);
+      console.warn(`[Apps Script] Không thể chia sẻ file ${fileId} qua Web App (có thể Apps Script chưa được Khầy update), chuyển sang Service Account:`, err);
     }
   }
 
+  // Fallback: Chạy trực tiếp qua Service Account nếu Web App lỗi hoặc chưa cập nhật case
   const drive = getDriveClient();
   try {
     await drive.permissions.create({
@@ -313,8 +317,8 @@ export async function shareFilePublicly(fileId: string): Promise<void> {
         type: 'anyone',
       },
     });
-    console.log(`[Drive API] Đã chia sẻ công khai thành công file: ${fileId}`);
+    console.log(`[Drive API] Đã chia sẻ công khai thành công file qua Service Account: ${fileId}`);
   } catch (error: any) {
-    console.error(`Error sharing file ${fileId} publicly:`, error.message || error);
+    console.error(`Error sharing file ${fileId} publicly via Service Account:`, error.message || error);
   }
 }
