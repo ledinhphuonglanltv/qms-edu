@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FILE_TYPES, FILE_TYPE_LABELS, EVALUATION_LEVELS, EVALUATION_COLORS } from '@/constants/roles';
 import { getCurrentWeek, getWeekDateRange, formatDate } from '@/utils/weekCalculator';
+import { supabase } from '@/services/supabaseClient';
 
 interface TeacherDashboardProps {
   user: {
@@ -10,15 +11,18 @@ interface TeacherDashboardProps {
     role: string;
     grade: string;
     status: string;
+    id?: string;
   };
   onLogout: () => void;
 }
 
 interface DemoFile {
+  id?: string; // ID file trên Google Drive (nếu có)
   name: string;
   type: string;
   size: string;
   uploadedAt: string;
+  url?: string;
 }
 
 interface DemoSubmission {
@@ -41,6 +45,14 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
   const [teacherNote, setTeacherNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // Trạng thái đang tải lên của từng ô tài liệu (ví dụ: { KHBD: true })
+  const [uploadingTypes, setUploadingTypes] = useState<{ [key: string]: boolean }>({
+    [FILE_TYPES.KHBD]: false,
+    [FILE_TYPES.KHGD]: false,
+    [FILE_TYPES.DCTD]: false,
+  });
 
   // File states cho 3 loại tài liệu
   const [files, setFiles] = useState<{ [key: string]: DemoFile | null }>({
@@ -52,151 +64,324 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
   // Lưu trữ các bản nộp tuần của giáo viên này
   const [submissions, setSubmissions] = useState<{ [key: number]: DemoSubmission }>({});
 
-  useEffect(() => {
-    // Khởi tạo một số dữ liệu demo cho giáo viên
-    const initialSubmissions: { [key: number]: DemoSubmission } = {
-      1: {
-        weekNumber: 1,
-        submittedAt: '2026-09-05T17:00:00Z',
-        teacherNote: 'Gửi giáo án tuần 1 đầy đủ',
-        leadStatus: 'verified',
-        leadNote: 'Đã nhận đủ tài liệu tuần 1, trình bày khoa học.',
-        bghRating: EVALUATION_LEVELS.TOT,
-        bghFeedback: 'Giáo án soạn rất tốt, bám sát đối tượng học sinh.',
-        files: [
-          { name: `KHBD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, size: '245 KB', uploadedAt: '2026-09-05' },
-          { name: `KHGD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, size: '120 KB', uploadedAt: '2026-09-05' },
-          { name: `DCTD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.DCTD, size: '98 KB', uploadedAt: '2026-09-05' },
-        ]
-      },
-      2: {
-        weekNumber: 2,
-        submittedAt: '2026-09-12T08:30:00Z',
-        teacherNote: 'Báo cáo tuần 2 bổ sung điều chỉnh tiết 3',
-        leadStatus: 'verified',
-        leadNote: 'Đã duyệt nộp đủ.',
-        bghRating: EVALUATION_LEVELS.XUAT_SAC,
-        bghFeedback: 'Phần điều chỉnh sau tiết dạy rất sâu sắc, đáng học tập.',
-        files: [
-          { name: `KHBD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, size: '250 KB', uploadedAt: '2026-09-12' },
-          { name: `KHGD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, size: '115 KB', uploadedAt: '2026-09-12' },
-          { name: `DCTD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.DCTD, size: '102 KB', uploadedAt: '2026-09-12' },
-        ]
-      },
-      3: {
-        weekNumber: 3,
-        submittedAt: null,
-        teacherNote: '',
-        leadStatus: 'incomplete',
-        leadNote: null,
-        bghRating: null,
-        bghFeedback: null,
-        files: []
-      }
-    };
-    
-    // Đọc thêm từ localStorage nếu GV đã nộp thử trong phiên này
-    const stored = localStorage.getItem(`qms_submissions_${user.fullName}`);
-    if (stored) {
-      setSubmissions(JSON.parse(stored));
-    } else {
-      setSubmissions(initialSubmissions);
-    }
-  }, [user.fullName]);
+  const isReal = !!user.id;
 
-  // Cập nhật form khi chọn tuần khác
-  useEffect(() => {
-    const sub = submissions[selectedWeek];
-    if (sub) {
-      setTeacherNote(sub.teacherNote || '');
-      const fileMap = {
-        [FILE_TYPES.KHBD]: sub.files.find(f => f.type === FILE_TYPES.KHBD) || null,
-        [FILE_TYPES.KHGD]: sub.files.find(f => f.type === FILE_TYPES.KHGD) || null,
-        [FILE_TYPES.DCTD]: sub.files.find(f => f.type === FILE_TYPES.DCTD) || null,
+  // Tải dữ liệu nộp bài thật từ Supabase và quét Google Drive
+  const loadRealSubmission = async (week: number) => {
+    if (!user.id) return;
+    setLoadingData(true);
+    try {
+      // 1. Tải trạng thái nộp bài từ Supabase submissions table
+      const { data: dbSub, error: dbErr } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('teacher_id', user.id)
+        .eq('week_number', week)
+        .maybeSingle();
+
+      if (dbErr) throw dbErr;
+
+      // 2. Gọi API quét file thật trực tiếp trên Google Drive
+      const scanRes = await fetch(`/api/submissions/scan?teacherId=${user.id}&weekNumber=${week}`);
+      const scanResult = await scanRes.json();
+      const driveFiles = scanRes.ok ? scanResult.files : [];
+
+      const subData: DemoSubmission = {
+        weekNumber: week,
+        submittedAt: dbSub?.submittedAt || (driveFiles.length > 0 ? (dbSub?.created_at || new Date().toISOString()) : null),
+        teacherNote: dbSub?.teacher_note || '',
+        leadStatus: dbSub?.lead_status || 'pending',
+        leadNote: dbSub?.lead_note || null,
+        bghRating: dbSub?.bgh_rating || null,
+        bghFeedback: dbSub?.bgh_feedback || null,
+        files: driveFiles.map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          type: f.type,
+          size: 'Đã quét trên Drive',
+          uploadedAt: f.uploadedAt || '',
+          url: f.url
+        }))
       };
-      setFiles(fileMap);
-    } else {
-      setTeacherNote('');
-      setFiles({
-        [FILE_TYPES.KHBD]: null,
-        [FILE_TYPES.KHGD]: null,
-        [FILE_TYPES.DCTD]: null,
-      });
-    }
-  }, [selectedWeek, submissions]);
 
-  // Xử lý nộp file giả lập
-  const handleFileUpload = (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
+      setSubmissions(prev => ({
+        ...prev,
+        [week]: subData
+      }));
+
+      // Nếu đang chọn chính tuần này thì cập nhật form
+      if (week === selectedWeek) {
+        setTeacherNote(subData.teacherNote);
+        const fileMap = {
+          [FILE_TYPES.KHBD]: subData.files.find(f => f.type === FILE_TYPES.KHBD) || null,
+          [FILE_TYPES.KHGD]: subData.files.find(f => f.type === FILE_TYPES.KHGD) || null,
+          [FILE_TYPES.DCTD]: subData.files.find(f => f.type === FILE_TYPES.DCTD) || null,
+        };
+        setFiles(fileMap);
+      }
+
+    } catch (err) {
+      console.error('Lỗi tải dữ liệu nộp bài từ database:', err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isReal) {
+      loadRealSubmission(selectedWeek);
+    } else {
+      // Dữ liệu giả lập cho phiên Demo
+      const initialSubmissions: { [key: number]: DemoSubmission } = {
+        1: {
+          weekNumber: 1,
+          submittedAt: '2026-09-05T17:00:00Z',
+          teacherNote: 'Gửi giáo án tuần 1 đầy đủ',
+          leadStatus: 'verified',
+          leadNote: 'Đã nhận đủ tài liệu tuần 1, trình bày khoa học.',
+          bghRating: EVALUATION_LEVELS.TOT,
+          bghFeedback: 'Giáo án soạn rất tốt, bám sát đối tượng học sinh.',
+          files: [
+            { name: `KHBD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, size: '245 KB', uploadedAt: '2026-09-05' },
+            { name: `KHGD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, size: '120 KB', uploadedAt: '2026-09-05' },
+            { name: `DCTD_Tuan01_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.DCTD, size: '98 KB', uploadedAt: '2026-09-05' },
+          ]
+        },
+        2: {
+          weekNumber: 2,
+          submittedAt: '2026-09-12T08:30:00Z',
+          teacherNote: 'Báo cáo tuần 2 bổ sung điều chỉnh tiết 3',
+          leadStatus: 'verified',
+          leadNote: 'Đã duyệt nộp đủ.',
+          bghRating: EVALUATION_LEVELS.XUAT_SAC,
+          bghFeedback: 'Phần điều chỉnh sau tiết dạy rất sâu sắc, đáng học tập.',
+          files: [
+            { name: `KHBD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, size: '250 KB', uploadedAt: '2026-09-12' },
+            { name: `KHGD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, size: '115 KB', uploadedAt: '2026-09-12' },
+            { name: `DCTD_Tuan02_${user.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.DCTD, size: '102 KB', uploadedAt: '2026-09-12' },
+          ]
+        },
+        3: {
+          weekNumber: 3,
+          submittedAt: null,
+          teacherNote: '',
+          leadStatus: 'incomplete',
+          leadNote: null,
+          bghRating: null,
+          bghFeedback: null,
+          files: []
+        }
+      };
+
+      const stored = localStorage.getItem(`qms_submissions_${user.fullName}`);
+      if (stored) {
+        setSubmissions(JSON.parse(stored));
+      } else {
+        setSubmissions(initialSubmissions);
+      }
+    }
+  }, [user.fullName, user.id]);
+
+  // Đồng bộ form khi đổi tuần ở chế độ demo
+  useEffect(() => {
+    if (!isReal) {
+      const sub = submissions[selectedWeek];
+      if (sub) {
+        setTeacherNote(sub.teacherNote || '');
+        const fileMap = {
+          [FILE_TYPES.KHBD]: sub.files.find(f => f.type === FILE_TYPES.KHBD) || null,
+          [FILE_TYPES.KHGD]: sub.files.find(f => f.type === FILE_TYPES.KHGD) || null,
+          [FILE_TYPES.DCTD]: sub.files.find(f => f.type === FILE_TYPES.DCTD) || null,
+        };
+        setFiles(fileMap);
+      } else {
+        setTeacherNote('');
+        setFiles({
+          [FILE_TYPES.KHBD]: null,
+          [FILE_TYPES.KHGD]: null,
+          [FILE_TYPES.DCTD]: null,
+        });
+      }
+    } else {
+      loadRealSubmission(selectedWeek);
+    }
+  }, [selectedWeek, submissions, isReal]);
+
+  // Xử lý nộp file thực tế lên Google Drive API
+  const handleFileUpload = async (type: string, e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     
-    // Validate tên file mẫu quy chuẩn (KHBX_TuanXX_TenGiaoVien.docx)
+    // Validate định dạng Word
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (fileExtension !== 'docx' && fileExtension !== 'doc') {
-      alert('Vui lòng chỉ nộp tài liệu định dạng Word (.doc hoặc .docx) theo quy định!');
+      alert('Vui lòng chỉ nộp tài liệu định dạng Word (.doc hoặc .docx) theo đúng quy định!');
       return;
     }
 
-    const cleanName = user.fullName.replace(/\s+/g, '');
-    const weekStr = String(selectedWeek).padStart(2, '0');
-    let standardName = `${type}_Tuan${weekStr}_${cleanName}.docx`;
+    if (isReal) {
+      // Bật trạng thái loading của ô tải lên tương ứng
+      setUploadingTypes(prev => ({ ...prev, [type]: true }));
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fileType', type);
+        formData.append('weekNumber', String(selectedWeek));
+        formData.append('teacherId', user.id || '');
+        formData.append('teacherName', user.fullName);
+        formData.append('grade', user.grade);
+        formData.append('teacherNote', teacherNote);
 
-    setFiles(prev => ({
-      ...prev,
-      [type]: {
-        name: standardName,
-        type: type,
-        size: `${Math.round(file.size / 1024)} KB`,
-        uploadedAt: new Date().toISOString().split('T')[0]
+        const res = await fetch('/api/submissions/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          setNotification(`Đã tải lên tệp tin ${type} thành công lên Google Drive!`);
+          setTimeout(() => setNotification(null), 5000);
+          
+          // Tải lại dữ liệu tuần để cập nhật file thật từ Drive
+          await loadRealSubmission(selectedWeek);
+        } else {
+          alert(`Tải file lên thất bại: ${result.error}`);
+        }
+      } catch (err: any) {
+        console.error('Lỗi khi upload file:', err);
+        alert(`Lỗi kết nối khi upload file: ${err.message}`);
+      } finally {
+        setUploadingTypes(prev => ({ ...prev, [type]: false }));
       }
-    }));
+    } else {
+      // Chế độ demo
+      const cleanName = user.fullName.replace(/\s+/g, '');
+      const weekStr = String(selectedWeek).padStart(2, '0');
+      let standardName = `${type}_Tuan${weekStr}_${cleanName}.docx`;
+
+      setFiles(prev => ({
+        ...prev,
+        [type]: {
+          name: standardName,
+          type: type,
+          size: `${Math.round(file.size / 1024)} KB`,
+          uploadedAt: new Date().toISOString().split('T')[0]
+        }
+      }));
+    }
   };
 
-  // Bấm nút xóa file đã chọn
-  const handleRemoveFile = (type: string) => {
-    setFiles(prev => ({
-      ...prev,
-      [type]: null
-    }));
+  // Bấm nút xóa file đã chọn (và xóa trên Drive nếu là real)
+  const handleRemoveFile = async (type: string) => {
+    const currentFile = files[type];
+    if (!currentFile) return;
+
+    if (isReal && currentFile.id) {
+      if (!confirm('Thầy/Cô có chắc chắn muốn xóa file này trên Google Drive của nhà trường?')) return;
+      
+      setUploadingTypes(prev => ({ ...prev, [type]: true }));
+      try {
+        const res = await fetch('/api/submissions/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileId: currentFile.id,
+            teacherId: user.id,
+            weekNumber: selectedWeek,
+          }),
+        });
+
+        const result = await res.json();
+        if (res.ok) {
+          setNotification(`Đã xóa file ${type} thành công trên Google Drive!`);
+          setTimeout(() => setNotification(null), 5000);
+          
+          // Tải lại dữ liệu tuần
+          await loadRealSubmission(selectedWeek);
+        } else {
+          alert(`Xóa file thất bại: ${result.error}`);
+        }
+      } catch (err: any) {
+        console.error('Lỗi khi xóa file:', err);
+        alert(`Lỗi kết nối khi xóa file: ${err.message}`);
+      } finally {
+        setUploadingTypes(prev => ({ ...prev, [type]: false }));
+      }
+    } else {
+      // Chế độ demo
+      setFiles(prev => ({
+        ...prev,
+        [type]: null
+      }));
+    }
   };
 
-  // Xác nhận nộp giáo án tuần
-  const handleSendSubmission = () => {
-    // Kiểm tra xem đã nộp ít nhất 1 file chưa
+  // Xác nhận nộp giáo án tuần và lưu ý kiến giáo viên
+  const handleSendSubmission = async () => {
     const activeFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
     if (activeFiles.length === 0) {
-      alert('Thầy/Cô vui lòng tải lên ít nhất một tài liệu giảng dạy trước khi bấm Gửi!');
+      alert('Thầy/Cô vui lòng tải lên ít nhất một tài liệu giảng dạy trước khi xác nhận gửi!');
       return;
     }
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const uploadedFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
-      
-      const newSubmission: DemoSubmission = {
-        weekNumber: selectedWeek,
-        submittedAt: new Date().toISOString(),
-        teacherNote: teacherNote,
-        leadStatus: 'pending', // Chờ duyệt lại sau khi nộp
-        leadNote: null,
-        bghRating: null,
-        bghFeedback: null,
-        files: uploadedFiles,
-      };
+    if (isReal && user.id) {
+      try {
+        // Ghi nhận ghi chú của giáo viên vào database
+        const { error } = await supabase
+          .from('submissions')
+          .upsert({
+            teacher_id: user.id,
+            week_number: selectedWeek,
+            school_year: '2026-2027',
+            teacher_note: teacherNote,
+            submitted_at: new Date().toISOString(),
+            lead_status: 'pending' // Chờ duyệt
+          });
 
-      const updatedSubmissions = {
-        ...submissions,
-        [selectedWeek]: newSubmission,
-      };
+        if (error) throw error;
 
-      setSubmissions(updatedSubmissions);
-      localStorage.setItem(`qms_submissions_${user.fullName}`, JSON.stringify(updatedSubmissions));
-      setIsSubmitting(false);
-      setNotification(`Đã gửi báo cáo Tuần ${selectedWeek} thành công tới Khối trưởng!`);
-      
-      setTimeout(() => setNotification(null), 5000);
-    }, 1200);
+        setNotification(`Đã cập nhật ý kiến và xác nhận nộp báo cáo Tuần ${selectedWeek} thành công tới Khối trưởng!`);
+        await loadRealSubmission(selectedWeek);
+      } catch (err: any) {
+        console.error('Lỗi khi gửi báo cáo:', err);
+        alert(`Gửi báo cáo thất bại: ${err.message}`);
+      } finally {
+        setIsSubmitting(false);
+        setTimeout(() => setNotification(null), 5000);
+      }
+    } else {
+      // Chế độ demo
+      setTimeout(() => {
+        const uploadedFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
+        
+        const newSubmission: DemoSubmission = {
+          weekNumber: selectedWeek,
+          submittedAt: new Date().toISOString(),
+          teacherNote: teacherNote,
+          leadStatus: 'pending',
+          leadNote: null,
+          bghRating: null,
+          bghFeedback: null,
+          files: uploadedFiles,
+        };
+
+        const updatedSubmissions = {
+          ...submissions,
+          [selectedWeek]: newSubmission,
+        };
+
+        setSubmissions(updatedSubmissions);
+        localStorage.setItem(`qms_submissions_${user.fullName}`, JSON.stringify(updatedSubmissions));
+        setIsSubmitting(false);
+        setNotification(`Đã gửi báo cáo Tuần ${selectedWeek} thành công tới Khối trưởng!`);
+        
+        setTimeout(() => setNotification(null), 5000);
+      }, 1200);
+    }
   };
 
   const selectedWeekSubmission = submissions[selectedWeek];
@@ -287,8 +472,15 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
           
           {/* Banner thông báo trạng thái nộp thành công */}
           {notification && (
-            <div className="p-4 rounded-xl border border-green-200 bg-green-50 text-sm text-green-700 font-medium animate-fade-in flex items-center gap-2 shadow-sm">
+            <div className="p-4 rounded-xl border border-green-200 bg-green-50 text-sm text-green-700 font-medium animate-fade-in flex items-center gap-2 shadow-sm animate-pulse">
               <span>✅</span> {notification}
+            </div>
+          )}
+
+          {/* LOADING INDICATOR */}
+          {loadingData && (
+            <div className="p-3 rounded-xl border border-indigo-200 bg-indigo-50 text-xs text-indigo-700 font-bold flex items-center gap-2 shadow-sm">
+              <span className="animate-spin">🔄</span> Đang quét dữ liệu Google Drive thực tế của Tuần {selectedWeek}...
             </div>
           )}
 
@@ -368,12 +560,13 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.keys(FILE_TYPE_LABELS).map((type) => {
                 const file = files[type];
+                const isUploading = uploadingTypes[type];
                 
                 return (
-                  <div key={type} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-indigo-400 transition-all flex flex-col justify-between min-h-[170px] shadow-sm relative group">
+                  <div key={type} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary transition-all flex flex-col justify-between min-h-[170px] shadow-sm relative group">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full uppercase">
+                        <span className="text-[10px] font-black text-brand-primary bg-brand-primary-light/50 border border-brand-primary-light px-2 py-0.5 rounded-full uppercase">
                           {type}
                         </span>
                         {file && (
@@ -385,14 +578,29 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                         {FILE_TYPE_LABELS[type as keyof typeof FILE_TYPE_LABELS]}
                       </h4>
                       
-                      {file ? (
+                      {isUploading ? (
+                        <div className="flex items-center gap-2 text-[10px] text-brand-primary font-bold mt-3">
+                          <span className="animate-spin">🔄</span> Đang xử lý...
+                        </div>
+                      ) : file ? (
                         <div className="text-[10px] text-slate-500 leading-snug break-all font-medium mt-2">
-                          📄 {file.name}
-                          <div className="text-[9px] text-slate-400 mt-1">Nộp lúc: {file.uploadedAt}</div>
+                          {file.url ? (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-primary hover:underline font-bold"
+                            >
+                              📄 {file.name}
+                            </a>
+                          ) : (
+                            <span>📄 {file.name}</span>
+                          )}
+                          <div className="text-[9px] text-slate-400 mt-1">Trạng thái: Đã đồng bộ Drive</div>
                         </div>
                       ) : (
                         <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                          Chưa tải tài liệu lên. Quy chuẩn tên file: <code className="text-indigo-600 block mt-1">{type}_Tuan{String(selectedWeek).padStart(2, '0')}_{[user.fullName.replace(/\s+/g, '')]}.docx</code>
+                          Chưa tải tài liệu lên. Quy chuẩn tên file: <code className="text-brand-primary block mt-1">{type}_Tuan{String(selectedWeek).padStart(2, '0')}_{[user.fullName.replace(/\s+/g, '')]}.docx</code>
                         </p>
                       )}
                     </div>
@@ -401,10 +609,11 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                       {file ? (
                         <button
                           type="button"
+                          disabled={isUploading}
                           onClick={() => handleRemoveFile(type)}
                           className="w-full py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
                         >
-                          Xóa & Nộp lại
+                          Xóa tài liệu
                         </button>
                       ) : (
                         <label className="w-full block text-center py-2 bg-brand-primary-light/40 hover:bg-brand-primary-light/60 text-brand-primary border border-brand-primary-light rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive">
@@ -412,6 +621,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                           <input
                             type="file"
                             accept=".doc,.docx"
+                            disabled={isUploading}
                             onChange={(e) => handleFileUpload(type, e)}
                             className="hidden"
                           />
@@ -434,7 +644,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
               value={teacherNote}
               onChange={(e) => setTeacherNote(e.target.value)}
               placeholder="Nhập ghi chú gửi kèm báo cáo tuần (ví dụ: xin bổ sung tiết 2 do đi công tác, gửi kèm điều chỉnh...)"
-              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+              className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
             />
           </div>
 
@@ -442,10 +652,10 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
           <div className="pt-4 border-t border-slate-200/80 flex justify-end">
             <button
               onClick={handleSendSubmission}
-              disabled={isSubmitting}
+              disabled={isSubmitting || loadingData}
               className="px-8 py-3 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 active:scale-[0.98] disabled:opacity-50 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md shadow-indigo-600/5 btn-interactive"
             >
-              {isSubmitting ? 'Đang tải và gửi báo cáo...' : `Báo cáo nộp chính thức Tuần ${selectedWeek}`}
+              {isSubmitting ? 'Đang gửi...' : `Báo cáo nộp chính thức Tuần ${selectedWeek}`}
             </button>
           </div>
 

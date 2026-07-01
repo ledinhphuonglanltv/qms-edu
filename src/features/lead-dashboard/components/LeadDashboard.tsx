@@ -39,6 +39,7 @@ interface TeacherData {
   fullName: string;
   email: string;
   driveFolder: string;
+  driveFolderId?: string | null;
 }
 
 export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
@@ -52,129 +53,251 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   const [verificationNote, setVerificationNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
   
   // SMTP Log để hiển thị quá trình gửi Gmail
   const [smtpLog, setSmtpLog] = useState<string | null>(null);
 
-  // Danh sách Giáo viên giả lập thuộc Khối (Grade) của Khối Trưởng
+  // Danh sách Giáo viên giảng dạy thuộc Khối quản lý của Khối Trưởng
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
 
   // Dữ liệu báo cáo của các giáo viên
   const [submissions, setSubmissions] = useState<{ [key: string]: DemoSubmission }>({});
 
-  useEffect(() => {
-    // 1. Khởi tạo danh sách giáo viên thuộc khối
-    const gradeSuffix = user.grade || 'Khối 1';
-    const mockTeachers: TeacherData[] = [
-      { id: 't1', fullName: 'Nguyễn Văn An', email: 'ledinhphuonglanltv@gmail.com', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/NguyenVanAn` },
-      { id: 't2', fullName: 'Lê Thị Bình', email: 'binh.lt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/LeThiBinh` },
-      { id: 't3', fullName: 'Phạm Hồng Sơn', email: 'son.ph@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/PhamHongSon` },
-      { id: 't4', fullName: 'Trần Thị Diệu', email: 'dieu.tt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/TranThiDieu` },
-    ];
-    setTeachers(mockTeachers);
+  const isReal = !!user.id;
 
-    // 2. Khởi tạo dữ liệu nộp bài demo của các giáo viên
-    const storageKey = `qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      setSubmissions(JSON.parse(stored));
-    } else {
-      const initialSubmissions: { [key: string]: DemoSubmission } = {
-        't1': {
-          teacherId: 't1',
-          submittedAt: '2026-09-12T08:30:00Z',
-          teacherNote: 'Gửi giáo án tuần này đầy đủ, phần điều chỉnh đã cập nhật',
-          leadStatus: 'pending',
-          leadNote: null,
-          bghRating: null,
-          bghFeedback: null,
-          files: [
-            { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_NguyenVanAn.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-12', url: '#' },
-            { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_NguyenVanAn.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-12', url: '#' },
-          ] // Thiếu DCTD
-        },
-        't2': {
-          teacherId: 't2',
-          submittedAt: '2026-09-11T16:45:00Z',
-          teacherNote: 'Nộp đủ 3 file',
-          leadStatus: 'verified',
-          leadNote: 'Đã duyệt báo cáo đầy đủ, đúng hạn.',
-          bghRating: EVALUATION_LEVELS.TOT,
-          bghFeedback: 'Thực hiện tốt.',
-          files: [
-            { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-11', url: '#' },
-            { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-11', url: '#' },
-            { fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.DCTD, uploadedAt: '2026-09-11', url: '#' },
-          ]
-        },
-        't3': {
-          teacherId: 't3',
-          submittedAt: null,
-          teacherNote: null,
-          leadStatus: 'incomplete',
-          leadNote: null,
-          bghRating: null,
-          bghFeedback: null,
-          files: []
-        },
-        't4': {
-          teacherId: 't4',
-          submittedAt: '2026-09-12T09:00:00Z',
-          teacherNote: 'Gửi tổ chuyên môn kiểm tra',
-          leadStatus: 'pending',
-          leadNote: null,
-          bghRating: null,
-          bghFeedback: null,
-          files: [
-            { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-12', url: '#' },
-            { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-12', url: '#' },
-            { fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.DCTD, uploadedAt: '2026-09-12', url: '#' },
-          ]
-        }
-      };
-      setSubmissions(initialSubmissions);
-      localStorage.setItem(storageKey, JSON.stringify(initialSubmissions));
-    }
-  }, [selectedWeek, user.grade]);
+  // Tải danh sách giáo viên và trạng thái nộp bài thật từ Supabase
+  const loadRealTeachersData = async () => {
+    if (!user.id) return;
+    setLoadingTeachers(true);
+    try {
+      // 1. Tải danh sách giáo viên thuộc cùng Khối và đã được phê duyệt hoạt động
+      const { data: dbTeachers, error: errT } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, drive_folder_id')
+        .eq('role', 'teacher')
+        .eq('grade', user.grade)
+        .eq('status', 'approved');
 
-  // Nút Quét Google Drive (Drive API Scan Simulation)
-  const handleScanDrive = (teacherId: string, teacherName: string) => {
-    setScanningId(teacherId);
-    
-    setTimeout(() => {
-      setScanningId(null);
-      const currentSub = submissions[teacherId];
-      const cleanName = teacherName.replace(/\s+/g, '');
-      
-      let updatedFiles = [...(currentSub?.files || [])];
-      
-      // Giả lập phát hiện file DCTD nếu là An (t1) nộp thiếu
-      if (teacherId === 't1' && !updatedFiles.some(f => f.fileType === FILE_TYPES.DCTD)) {
-        updatedFiles.push({
-          fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_${cleanName}.docx`,
-          fileType: FILE_TYPES.DCTD,
-          uploadedAt: new Date().toISOString().split('T')[0],
-          url: '#',
+      if (errT) throw errT;
+
+      const formattedTeachers: TeacherData[] = (dbTeachers || []).map(t => ({
+        id: t.id,
+        fullName: t.full_name || '',
+        email: t.email,
+        driveFolder: t.drive_folder_id ? `Đã liên kết Drive` : 'Chưa tạo folder',
+        driveFolderId: t.drive_folder_id
+      }));
+
+      setTeachers(formattedTeachers);
+
+      // 2. Tải toàn bộ trạng thái nộp bài trong tuần đó của danh sách giáo viên này
+      const teacherIds = formattedTeachers.map(t => t.id);
+      if (teacherIds.length > 0) {
+        const { data: dbSubs, error: errS } = await supabase
+          .from('submissions')
+          .select('*')
+          .in('teacher_id', teacherIds)
+          .eq('week_number', selectedWeek);
+
+        if (errS) throw errS;
+
+        const subMap: { [key: string]: DemoSubmission } = {};
+        
+        // Gán dữ liệu mặc định ban đầu cho các giáo viên chưa nộp
+        formattedTeachers.forEach(t => {
+          subMap[t.id] = {
+            teacherId: t.id,
+            submittedAt: null,
+            teacherNote: null,
+            leadStatus: 'incomplete',
+            leadNote: null,
+            bghRating: null,
+            bghFeedback: null,
+            files: []
+          };
         });
+
+        // Đổ dữ liệu từ Supabase vào map
+        (dbSubs || []).forEach(sub => {
+          subMap[sub.teacher_id] = {
+            teacherId: sub.teacher_id,
+            submittedAt: sub.submitted_at,
+            teacherNote: sub.teacher_note,
+            leadStatus: sub.lead_status,
+            leadNote: sub.lead_note,
+            bghRating: sub.bgh_rating,
+            bghFeedback: sub.bgh_feedback,
+            files: [] // Cột file sẽ được quét realtime khi bấm "Quét Drive"
+          };
+        });
+
+        setSubmissions(subMap);
       }
-      
-      const newSub: DemoSubmission = {
-        ...currentSub,
-        submittedAt: currentSub?.submittedAt || (updatedFiles.length > 0 ? new Date().toISOString() : null),
-        files: updatedFiles,
-      };
+    } catch (err) {
+      console.error('Lỗi load danh sách giáo viên:', err);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  };
 
-      const newSubmissions = {
-        ...submissions,
-        [teacherId]: newSub,
-      };
-
-      setSubmissions(newSubmissions);
+  useEffect(() => {
+    if (isReal) {
+      loadRealTeachersData();
+    } else {
+      // 1. Dữ liệu giả lập cho phiên Demo
       const gradeSuffix = user.grade || 'Khối 1';
-      localStorage.setItem(`qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`, JSON.stringify(newSubmissions));
-      
-      alert(`[Drive API] Quét thành công thư mục giáo viên ${teacherName}. Phát hiện: ${updatedFiles.length} file.`);
-    }, 1500);
+      const mockTeachers: TeacherData[] = [
+        { id: 't1', fullName: 'Nguyễn Văn An', email: 'ledinhphuonglanltv@gmail.com', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/NguyenVanAn` },
+        { id: 't2', fullName: 'Lê Thị Bình', email: 'binh.lt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/LeThiBinh` },
+        { id: 't3', fullName: 'Phạm Hồng Sơn', email: 'son.ph@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/PhamHongSon` },
+        { id: 't4', fullName: 'Trần Thị Diệu', email: 'dieu.tt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/TranThiDieu` },
+      ];
+      setTeachers(mockTeachers);
+
+      // 2. Dữ liệu báo cáo giả lập
+      const storageKey = `qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        setSubmissions(JSON.parse(stored));
+      } else {
+        const initialSubmissions: { [key: string]: DemoSubmission } = {
+          't1': {
+            teacherId: 't1',
+            submittedAt: '2026-09-12T08:30:00Z',
+            teacherNote: 'Gửi giáo án tuần này đầy đủ, phần điều chỉnh đã cập nhật',
+            leadStatus: 'pending',
+            leadNote: null,
+            bghRating: null,
+            bghFeedback: null,
+            files: [
+              { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_NguyenVanAn.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-12', url: '#' },
+              { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_NguyenVanAn.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-12', url: '#' },
+            ]
+          },
+          't2': {
+            teacherId: 't2',
+            submittedAt: '2026-09-11T16:45:00Z',
+            teacherNote: 'Nộp đủ 3 file',
+            leadStatus: 'verified',
+            leadNote: 'Đã duyệt báo cáo đầy đủ, đúng hạn.',
+            bghRating: EVALUATION_LEVELS.TOT,
+            bghFeedback: 'Thực hiện tốt.',
+            files: [
+              { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-11', url: '#' },
+              { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-11', url: '#' },
+              { fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.DCTD, uploadedAt: '2026-09-11', url: '#' },
+            ]
+          },
+          't3': {
+            teacherId: 't3',
+            submittedAt: null,
+            teacherNote: null,
+            leadStatus: 'incomplete',
+            leadNote: null,
+            bghRating: null,
+            bghFeedback: null,
+            files: []
+          },
+          't4': {
+            teacherId: 't4',
+            submittedAt: '2026-09-12T09:00:00Z',
+            teacherNote: 'Gửi tổ chuyên môn kiểm tra',
+            leadStatus: 'pending',
+            leadNote: null,
+            bghRating: null,
+            bghFeedback: null,
+            files: [
+              { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-12', url: '#' },
+              { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-12', url: '#' },
+              { fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_TranThiDieu.docx`, fileType: FILE_TYPES.DCTD, uploadedAt: '2026-09-12', url: '#' },
+            ]
+          }
+        };
+        setSubmissions(initialSubmissions);
+        localStorage.setItem(storageKey, JSON.stringify(initialSubmissions));
+      }
+    }
+  }, [selectedWeek, user.grade, user.id, isReal]);
+
+  // Nút Quét Google Drive thật
+  const handleScanDrive = async (teacherId: string, teacherName: string) => {
+    setScanningId(teacherId);
+
+    if (isReal) {
+      try {
+        // Gọi API quét Drive thật ở server-side
+        const res = await fetch(`/api/submissions/scan?teacherId=${teacherId}&weekNumber=${selectedWeek}`);
+        const result = await res.json();
+        
+        if (res.ok) {
+          const driveFiles = result.files.map((f: any) => ({
+            fileName: f.name,
+            fileType: f.type,
+            uploadedAt: f.uploadedAt || '',
+            url: f.url
+          }));
+
+          setSubmissions(prev => {
+            const currentSub = prev[teacherId];
+            return {
+              ...prev,
+              [teacherId]: {
+                ...currentSub,
+                files: driveFiles,
+                // Nếu quét thấy file mà db chưa có submittedAt thì gán mặc định
+                submittedAt: currentSub?.submittedAt || (driveFiles.length > 0 ? new Date().toISOString() : null)
+              }
+            };
+          });
+
+          // Hiển thị thông báo quét thành công
+          alert(`[Drive API] Quét thành công thư mục của Giáo viên ${teacherName}. Phát hiện: ${driveFiles.length} file.`);
+        } else {
+          alert(`Lỗi quét Drive: ${result.error}`);
+        }
+      } catch (err: any) {
+        console.error('Lỗi khi quét Drive:', err);
+        alert(`Lỗi kết nối khi quét Google Drive: ${err.message}`);
+      } finally {
+        setScanningId(null);
+      }
+    } else {
+      // Chế độ demo giả lập
+      setTimeout(() => {
+        setScanningId(null);
+        const currentSub = submissions[teacherId];
+        const cleanName = teacherName.replace(/\s+/g, '');
+        
+        let updatedFiles = [...(currentSub?.files || [])];
+        
+        if (teacherId === 't1' && !updatedFiles.some(f => f.fileType === FILE_TYPES.DCTD)) {
+          updatedFiles.push({
+            fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_${cleanName}.docx`,
+            fileType: FILE_TYPES.DCTD,
+            uploadedAt: new Date().toISOString().split('T')[0],
+            url: '#',
+          });
+        }
+        
+        const newSub: DemoSubmission = {
+          ...currentSub,
+          submittedAt: currentSub?.submittedAt || (updatedFiles.length > 0 ? new Date().toISOString() : null),
+          files: updatedFiles,
+        };
+
+        const newSubmissions = {
+          ...submissions,
+          [teacherId]: newSub,
+        };
+
+        setSubmissions(newSubmissions);
+        const gradeSuffix = user.grade || 'Khối 1';
+        localStorage.setItem(`qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`, JSON.stringify(newSubmissions));
+        
+        alert(`[Drive API] Quét thành công thư mục giáo viên ${teacherName}. Phát hiện: ${updatedFiles.length} file.`);
+      }, 1500);
+    }
   };
 
   const handleVerifyClick = (teacher: TeacherData) => {
@@ -183,18 +306,18 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
     setVerificationNote(sub?.leadNote || '');
   };
 
-  // Xác nhận nộp đủ và gửi email SMTP
+  // Xác nhận nộp đủ và gửi email SMTP thật
   const submitVerification = async (status: 'verified' | 'incomplete') => {
     if (!selectedTeacher) return;
     setIsSubmitting(true);
     setSmtpLog(null);
 
     const sub = submissions[selectedTeacher.id];
-    const isReal = 'id' in user && !!user.id;
 
     if (isReal) {
       try {
         // 1. Gọi API gửi mail SMTP thật ở server-side
+        console.log(`[SMTP] Gửi email thông báo trạng thái ${status} tới ${selectedTeacher.email}...`);
         const emailResponse = await fetch('/api/mail', {
           method: 'POST',
           headers: {
@@ -213,45 +336,45 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
 
         const emailResult = await emailResponse.json();
         if (!emailResponse.ok) {
-          throw new Error(emailResult.error || 'Lỗi gửi email.');
+          throw new Error(emailResult.error || 'Lỗi gửi email qua máy chủ SMTP.');
         }
 
-        // 2. Lưu trạng thái nộp bài vào cơ sở dữ liệu Supabase thật
-        const { error } = await supabase.from('submissions').upsert({
-          teacher_id: selectedTeacher.id,
-          week_number: selectedWeek,
-          school_year: '2026-2027',
-          lead_status: status,
-          lead_note: verificationNote,
-          lead_verified_at: new Date().toISOString(),
-          lead_id: (user as any).id,
-        });
+        // 2. Cập nhật trạng thái duyệt vào submissions table trong Supabase
+        const { error } = await supabase
+          .from('submissions')
+          .upsert({
+            teacher_id: selectedTeacher.id,
+            week_number: selectedWeek,
+            school_year: '2026-2027',
+            lead_status: status,
+            lead_note: verificationNote,
+            lead_verified_at: new Date().toISOString(),
+            lead_id: user.id,
+          });
 
         if (error) throw error;
 
         // Cập nhật giao diện
-        const updatedSub: DemoSubmission = {
-          ...sub,
-          leadStatus: status,
-          leadNote: verificationNote,
-        };
-
         setSubmissions(prev => ({
           ...prev,
-          [selectedTeacher.id]: updatedSub,
+          [selectedTeacher.id]: {
+            ...prev[selectedTeacher.id],
+            leadStatus: status,
+            leadNote: verificationNote,
+          }
         }));
 
-        setSuccessMsg(`Đã duyệt và gửi email thông báo thật thành công tới Thầy/Cô ${selectedTeacher.fullName}!`);
+        setSuccessMsg(`Đã duyệt báo cáo và gửi email thông báo thành công tới Thầy/Cô ${selectedTeacher.fullName}!`);
       } catch (err: any) {
         console.error('Lỗi duyệt báo cáo:', err);
-        alert(`Duyệt thất bại: ${err.message || 'Lỗi kết nối mạng.'}`);
+        alert(`Kiểm duyệt thất bại: ${err.message || 'Lỗi kết nối.'}`);
       } finally {
         setIsSubmitting(false);
         setSelectedTeacher(null);
         setTimeout(() => setSuccessMsg(null), 5000);
       }
     } else {
-      // Chế độ dùng thử (Demo Mode)
+      // Chế độ demo
       setTimeout(() => {
         const updatedSub: DemoSubmission = {
           ...sub,
@@ -355,104 +478,132 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           </div>
         )}
 
+        {/* LOADING DATA INDICATOR */}
+        {loadingTeachers && (
+          <div className="p-4 rounded-2xl border border-slate-200 bg-white text-center text-xs text-slate-500 shadow-sm animate-pulse">
+            🔄 Đang tải danh sách giáo viên {user.grade} thực tế từ Cơ sở dữ liệu...
+          </div>
+        )}
+
         {/* DANH SÁCH GIÁO VIÊN VÀ BÁO CÁO CỦA HỌ */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs sm:text-sm font-black text-slate-700 uppercase tracking-wider">
-              Theo dõi và Duyệt giáo án {user.grade} (Tuần {selectedWeek})
-            </h2>
-            <span className="text-[10px] text-slate-400 font-bold">Tổng số giáo viên: {teachers.length}</span>
-          </div>
+        {!loadingTeachers && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs sm:text-sm font-black text-slate-700 uppercase tracking-wider">
+                Theo dõi và Duyệt giáo án {user.grade} (Tuần {selectedWeek})
+              </h2>
+              <span className="text-[10px] text-slate-400 font-bold">Tổng số giáo viên: {teachers.length}</span>
+            </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {teachers.map((teacher) => {
-              const sub = submissions[teacher.id];
-              const isScanning = scanningId === teacher.id;
+            {teachers.length === 0 ? (
+              <div className="p-12 border border-dashed border-slate-300 rounded-2xl bg-white text-center shadow-sm">
+                <span className="text-4xl block mb-2">📋</span>
+                <div className="text-xs font-bold text-slate-700 uppercase">Khối chưa có giáo viên nào hoạt động</div>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto">Chưa có giáo viên nào thuộc khối này đăng ký tài khoản hoặc tài khoản của họ đang ở hàng chờ phê duyệt.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {teachers.map((teacher) => {
+                  const sub = submissions[teacher.id];
+                  const isScanning = scanningId === teacher.id;
 
-              return (
-                <div key={teacher.id} className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 shadow-sm transition-all flex flex-col lg:flex-row gap-5 justify-between items-start lg:items-center">
-                  
-                  {/* Cột 1: Thông tin giáo viên & Ghi chú nộp */}
-                  <div className="space-y-2 lg:max-w-sm w-full">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">👩‍🏫</span>
-                      <div>
-                        <h3 className="font-bold text-slate-800 leading-tight">{teacher.fullName}</h3>
-                        <span className="text-[10px] text-slate-400 font-medium">{teacher.email}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-slate-500 pl-7 space-y-1">
-                      <div className="break-all">📁 <strong>Thư mục Drive:</strong> <code className="text-brand-primary text-[10px]">{teacher.driveFolder}</code></div>
-                      {sub?.submittedAt ? (
-                        <div className="text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2 italic">
-                          "Gửi kèm: {sub.teacherNote || 'Không ghi chú'}"
-                        </div>
-                      ) : (
-                        <div className="text-slate-400 italic mt-1">Chưa bấm xác nhận đã nộp trên App</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cột 2: Các file hiện có (Được quét từ Google Drive) */}
-                  <div className="flex-grow w-full lg:max-w-md">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tài liệu đã quét trên Drive</div>
-                    
-                    {!sub || sub.files.length === 0 ? (
-                      <p className="text-[11px] text-slate-400 italic">Thư mục Drive trống. Giáo viên chưa tải tài liệu lên.</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {sub.files.map((file, i) => (
-                          <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 text-[11px]">
-                            <span className="text-slate-700 font-medium truncate max-w-[200px] sm:max-w-[280px]">📄 {file.fileName}</span>
-                            <span className="text-[9px] font-bold text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-1.5 py-0.5 rounded uppercase shrink-0">{file.fileType}</span>
+                  return (
+                    <div key={teacher.id} className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 shadow-sm transition-all flex flex-col lg:flex-row gap-5 justify-between items-start lg:items-center">
+                      
+                      {/* Cột 1: Thông tin giáo viên & Ghi chú nộp */}
+                      <div className="space-y-2 lg:max-w-sm w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">👩‍🏫</span>
+                          <div>
+                            <h3 className="font-bold text-slate-800 leading-tight">{teacher.fullName}</h3>
+                            <span className="text-[10px] text-slate-400 font-medium">{teacher.email}</span>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 pl-7 space-y-1">
+                          <div className="break-all">📁 <strong>Thư mục Drive:</strong> <code className="text-brand-primary text-[10px]">{teacher.driveFolder}</code></div>
+                          {sub?.submittedAt ? (
+                            <div className="text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2 italic">
+                              "Gửi kèm: {sub.teacherNote || 'Không ghi chú'}"
+                            </div>
+                          ) : (
+                            <div className="text-slate-400 italic mt-1">Chưa bấm xác nhận đã nộp trên App</div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Cột 3: Trạng thái & Tác vụ kiểm duyệt */}
-                  <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-auto items-center lg:items-end justify-between self-stretch pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                    
-                    {/* Badge trạng thái */}
-                    <div className="text-right">
-                      {!sub?.submittedAt ? (
-                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-slate-100 text-slate-500 border border-slate-200">Chưa nộp bài</span>
-                      ) : sub.leadStatus === 'pending' ? (
-                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-yellow-50 text-yellow-600 border border-yellow-200 animate-pulse">Chờ kiểm duyệt</span>
-                      ) : sub.leadStatus === 'incomplete' ? (
-                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-orange-50 text-orange-600 border border-orange-200">Cần bổ sung</span>
-                      ) : (
-                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">✓ Đã duyệt nộp đủ</span>
-                      )}
+                      {/* Cột 2: Các file hiện có (Được quét từ Google Drive) */}
+                      <div className="flex-grow w-full lg:max-w-md">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tài liệu đã quét trên Drive</div>
+                        
+                        {!sub || sub.files.length === 0 ? (
+                          <p className="text-[11px] text-slate-400 italic">Thư mục Drive trống. Click "Quét Drive" để kiểm tra học liệu thực tế.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {sub.files.map((file, i) => (
+                              <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 text-[11px]">
+                                {file.url ? (
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-brand-primary hover:underline font-bold truncate max-w-[200px] sm:max-w-[280px]"
+                                  >
+                                    📄 {file.fileName}
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-700 font-medium truncate max-w-[200px] sm:max-w-[280px]">📄 {file.fileName}</span>
+                                )}
+                                <span className="text-[9px] font-bold text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-1.5 py-0.5 rounded uppercase shrink-0">{file.fileType}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Cột 3: Trạng thái & Tác vụ kiểm duyệt */}
+                      <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-auto items-center lg:items-end justify-between self-stretch pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                        
+                        {/* Badge trạng thái */}
+                        <div className="text-right">
+                          {!sub?.submittedAt ? (
+                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-slate-100 text-slate-500 border border-slate-200">Chưa nộp bài</span>
+                          ) : sub.leadStatus === 'pending' ? (
+                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-yellow-50 text-yellow-600 border border-yellow-200 animate-pulse">Chờ kiểm duyệt</span>
+                          ) : sub.leadStatus === 'incomplete' ? (
+                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-orange-50 text-orange-600 border border-orange-200">Cần bổ sung</span>
+                          ) : (
+                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">✓ Đã duyệt nộp đủ</span>
+                          )}
+                        </div>
+
+                        {/* Nút tác vụ */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleScanDrive(teacher.id, teacher.fullName)}
+                            disabled={isScanning}
+                            className="px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
+                          >
+                            {isScanning ? '🔄 Đang quét...' : '🔍 Quét Drive'}
+                          </button>
+
+                          <button
+                            onClick={() => handleVerifyClick(teacher)}
+                            disabled={!sub?.submittedAt && sub?.leadStatus === 'incomplete'}
+                            className="px-3 py-2 bg-brand-primary hover:bg-brand-primary-hover disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
+                          >
+                            ⚖️ Duyệt & Gửi mail
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
-
-                    {/* Nút tác vụ */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleScanDrive(teacher.id, teacher.fullName)}
-                        disabled={isScanning}
-                        className="px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
-                      >
-                        {isScanning ? '🔄 Đang quét...' : '🔍 Quét Drive'}
-                      </button>
-
-                      <button
-                        onClick={() => handleVerifyClick(teacher)}
-                        disabled={!sub?.submittedAt}
-                        className="px-3 py-2 bg-brand-primary hover:bg-brand-primary-hover disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
-                      >
-                        ⚖️ Duyệt & Gửi mail
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </main>
 
       {/* POPUP MODAL DUYỆT & NHẬN XÉT GỬI MAIL */}

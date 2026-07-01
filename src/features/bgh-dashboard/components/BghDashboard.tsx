@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { EVALUATION_LEVELS, EVALUATION_COLORS, FILE_TYPES } from '@/constants/roles';
 import { getCurrentWeek } from '@/utils/weekCalculator';
+import { supabase } from '@/services/supabaseClient';
 
 interface BghDashboardProps {
   user: {
@@ -10,6 +11,7 @@ interface BghDashboardProps {
     role: string;
     grade: string;
     status: string;
+    id?: string;
   };
   onLogout: () => void;
 }
@@ -22,15 +24,11 @@ interface TeacherMockData {
   submittedCount: number;
 }
 
-interface MockSubmissionDetail {
-  teacherId: string;
-  weekNumber: number;
-  submittedAt: string | null;
-  leadStatus: string;
-  bghRating: string | null;
-  bghFeedback: string | null;
-  isElite: boolean;
-  files: Array<{ name: string; url: string; type: string }>;
+interface TeacherFile {
+  name: string;
+  url: string;
+  type: string;
+  uploadedAt: string;
 }
 
 export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
@@ -42,6 +40,8 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
   const [selectedGrade, setSelectedGrade] = useState<string>('Khối 1');
   const [randomTeacher, setRandomTeacher] = useState<TeacherMockData | null>(null);
   const [isSampling, setIsSampling] = useState(false);
+  const [scannedFiles, setScannedFiles] = useState<TeacherFile[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   // Đánh giá chi tiết
   const [bghRating, setBghRating] = useState<string>(EVALUATION_LEVELS.DAT);
@@ -60,29 +60,88 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     'trinh_bay': EVALUATION_LEVELS.DAT,
   });
 
-  // Tải danh sách giáo viên toàn trường
-  const allTeachers: TeacherMockData[] = [
-    { id: 't1', fullName: 'Nguyễn Văn An', grade: 'Khối 1', email: 'ledinhphuonglanltv@gmail.com', submittedCount: 3 },
-    { id: 't2', fullName: 'Lê Thị Bình', grade: 'Khối 1', email: 'binh.lt@school.edu.vn', submittedCount: 3 },
-    { id: 't3', fullName: 'Phạm Hồng Sơn', grade: 'Khối 1', email: 'son.ph@school.edu.vn', submittedCount: 1 },
-    { id: 't4', fullName: 'Trần Thị Diệu', grade: 'Khối 1', email: 'dieu.tt@school.edu.vn', submittedCount: 3 },
-    { id: 't5', fullName: 'Hoàng Văn Hùng', grade: 'Khối 2', email: 'hung.vh@school.edu.vn', submittedCount: 3 },
-    { id: 't6', fullName: 'Vũ Thị Mai', grade: 'Khối 2', email: 'mai.vt@school.edu.vn', submittedCount: 2 },
-    { id: 't7', fullName: 'Đỗ Tiến Đạt', grade: 'Khối 3', email: 'dat.td@school.edu.vn', submittedCount: 3 },
-    { id: 't8', fullName: 'Nguyễn Minh Thư', grade: 'Bộ môn đặc thù', email: 'thu.nm@school.edu.vn', submittedCount: 3 },
-  ];
+  const [teachersList, setTeachersList] = useState<TeacherMockData[]>([]);
+  const isReal = !!user.id;
 
-  const filteredTeachers = allTeachers.filter(t => t.grade === selectedGrade);
+  // Tải danh sách giáo viên thật từ database Supabase
+  const loadRealTeachers = async () => {
+    if (!user.id) return;
+    try {
+      const { data: dbTeachers, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, grade')
+        .eq('role', 'teacher')
+        .eq('status', 'approved');
 
-  // Giả lập lấy mẫu ngẫu nhiên (Random Sampling)
+      if (error) throw error;
+
+      const formatted = (dbTeachers || []).map(t => ({
+        id: t.id,
+        fullName: t.full_name || '',
+        grade: t.grade || 'Khối 1',
+        email: t.email,
+        submittedCount: 0
+      }));
+
+      setTeachersList(formatted);
+    } catch (err) {
+      console.error('Lỗi tải danh sách giáo viên BGH:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isReal) {
+      loadRealTeachers();
+    } else {
+      // Mock teachers list cho demo mode
+      const allTeachers: TeacherMockData[] = [
+        { id: 't1', fullName: 'Nguyễn Văn An', grade: 'Khối 1', email: 'ledinhphuonglanltv@gmail.com', submittedCount: 3 },
+        { id: 't2', fullName: 'Lê Thị Bình', grade: 'Khối 1', email: 'binh.lt@school.edu.vn', submittedCount: 3 },
+        { id: 't3', fullName: 'Phạm Hồng Sơn', grade: 'Khối 1', email: 'son.ph@school.edu.vn', submittedCount: 1 },
+        { id: 't4', fullName: 'Trần Thị Diệu', grade: 'Khối 1', email: 'dieu.tt@school.edu.vn', submittedCount: 3 },
+        { id: 't5', fullName: 'Hoàng Văn Hùng', grade: 'Khối 2', email: 'hung.vh@school.edu.vn', submittedCount: 3 },
+        { id: 't6', fullName: 'Vũ Thị Mai', grade: 'Khối 2', email: 'mai.vt@school.edu.vn', submittedCount: 2 },
+        { id: 't7', fullName: 'Đỗ Tiến Đạt', grade: 'Khối 3', email: 'dat.td@school.edu.vn', submittedCount: 3 },
+        { id: 't8', fullName: 'Nguyễn Minh Thư', grade: 'Bộ môn đặc thù', email: 'thu.nm@school.edu.vn', submittedCount: 3 },
+      ];
+      setTeachersList(allTeachers);
+    }
+  }, [user.id, isReal]);
+
+  const filteredTeachers = teachersList.filter(t => t.grade === selectedGrade);
+
+  // Gọi API quét file thật của Giáo viên được rút thăm ngẫu nhiên
+  const loadTeacherRealFiles = async (teacherId: string) => {
+    setLoadingFiles(true);
+    setScannedFiles([]);
+    try {
+      const res = await fetch(`/api/submissions/scan?teacherId=${teacherId}&weekNumber=${selectedWeek}`);
+      const result = await res.json();
+      if (res.ok) {
+        setScannedFiles(result.files.map((f: any) => ({
+          name: f.name,
+          url: f.url,
+          type: f.type,
+          uploadedAt: f.uploadedAt || ''
+        })));
+      }
+    } catch (e) {
+      console.error('Lỗi quét file khi đánh giá:', e);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  // Giả lập/Thực tế lấy mẫu ngẫu nhiên (Random Sampling)
   const handleRandomSampling = () => {
     setIsSampling(true);
     setRandomTeacher(null);
     setSaveSuccess(false);
+    setScannedFiles([]);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (filteredTeachers.length === 0) {
-        alert('Khối này chưa có giáo viên nào nộp báo cáo!');
+        alert('Khối này chưa có giáo viên nào hoạt động!');
         setIsSampling(false);
         return;
       }
@@ -105,45 +164,106 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
         'danh_gia': EVALUATION_LEVELS.DAT,
         'trinh_bay': EVALUATION_LEVELS.DAT,
       });
-    }, 1500);
+
+      // Nếu chạy thật -> quét Drive của giáo viên được bốc trúng
+      if (isReal) {
+        await loadTeacherRealFiles(chosenTeacher.id);
+      } else {
+        // Mock files của giáo viên bốc thăm trúng ở demo mode
+        setScannedFiles([
+          { name: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_${chosenTeacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, url: '#', uploadedAt: '2026-09-12' },
+          { name: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_${chosenTeacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, url: '#', uploadedAt: '2026-09-12' },
+        ]);
+      }
+    }, 1200);
   };
 
-  // Giả lập lưu nhận xét thi đua
-  const handleSaveEvaluation = (e: React.FormEvent) => {
+  // Lưu nhận xét thi đua thật vào database
+  const handleSaveEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!randomTeacher) return;
 
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setSaveSuccess(true);
-      
-      // Đồng bộ lưu kết quả học liệu vàng nếu được tích xanh "Bài học mẫu mực"
-      if (isElite) {
-        const storedElites = localStorage.getItem('qms_elite_lessons') || '[]';
-        const elites = JSON.parse(storedElites);
-        const newElite = {
-          id: `${randomTeacher.id}_w${selectedWeek}`,
-          teacherName: randomTeacher.fullName,
-          grade: randomTeacher.grade,
-          weekNumber: selectedWeek,
-          title: `Kế hoạch bài dạy Tuần ${selectedWeek} - môn Toán lớp 6`,
-          fileUrl: '#',
-          rating: bghRating,
-          feedback: bghFeedback
-        };
-        // Tránh trùng lặp
-        if (!elites.some((e: any) => e.id === newElite.id)) {
-          elites.push(newElite);
-          localStorage.setItem('qms_elite_lessons', JSON.stringify(elites));
+    
+    if (isReal && user.id) {
+      try {
+        // Cập nhật kết quả đánh giá thi đua vào bảng submissions của Supabase
+        const { error } = await supabase
+          .from('submissions')
+          .upsert({
+            teacher_id: randomTeacher.id,
+            week_number: selectedWeek,
+            school_year: '2026-2027',
+            bgh_rating: bghRating,
+            bgh_feedback: bghFeedback,
+            bgh_rated_at: new Date().toISOString(),
+            bgh_id: user.id,
+            is_elite: isElite
+          });
+
+        if (error) throw error;
+
+        // Nếu được tích xanh "Bài học mẫu mực" -> vinh danh vào Kho học liệu vàng
+        if (isElite) {
+          const storedElites = localStorage.getItem('qms_elite_lessons') || '[]';
+          const elites = JSON.parse(storedElites);
+          const newElite = {
+            id: `${randomTeacher.id}_w${selectedWeek}`,
+            teacherName: randomTeacher.fullName,
+            grade: randomTeacher.grade,
+            weekNumber: selectedWeek,
+            title: `Kế hoạch bài dạy Tuần ${selectedWeek} - môn Toán/Tiếng Việt`,
+            fileUrl: scannedFiles.find(f => f.type === FILE_TYPES.KHBD)?.url || '#',
+            rating: bghRating,
+            feedback: bghFeedback
+          };
+          if (!elites.some((e: any) => e.id === newElite.id)) {
+            elites.push(newElite);
+            localStorage.setItem('qms_elite_lessons', JSON.stringify(elites));
+          }
         }
+
+        setSaveSuccess(true);
+        alert(`Đã lưu kết quả thanh tra chất lượng và đánh giá thi đua cho Thầy/Cô ${randomTeacher.fullName} thành công!`);
+        setRandomTeacher(null);
+      } catch (err: any) {
+        console.error('Lỗi lưu đánh giá BGH:', err);
+        alert(`Lưu đánh giá thất bại: ${err.message}`);
+      } finally {
+        setIsSaving(false);
       }
-      
-      alert(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công!`);
-    }, 1000);
+    } else {
+      // Demo Mode
+      setTimeout(() => {
+        setIsSaving(false);
+        setSaveSuccess(true);
+        
+        if (isElite) {
+          const storedElites = localStorage.getItem('qms_elite_lessons') || '[]';
+          const elites = JSON.parse(storedElites);
+          const newElite = {
+            id: `${randomTeacher.id}_w${selectedWeek}`,
+            teacherName: randomTeacher.fullName,
+            grade: randomTeacher.grade,
+            weekNumber: selectedWeek,
+            title: `Kế hoạch bài dạy Tuần ${selectedWeek} - môn học mẫu mực`,
+            fileUrl: '#',
+            rating: bghRating,
+            feedback: bghFeedback
+          };
+          if (!elites.some((e: any) => e.id === newElite.id)) {
+            elites.push(newElite);
+            localStorage.setItem('qms_elite_lessons', JSON.stringify(elites));
+          }
+        }
+        
+        alert(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công!`);
+        setRandomTeacher(null);
+      }, 1000);
+    }
   };
 
-  // Danh sách các tiêu chí
+  // Danh sách các tiêu chí đánh giá
   const CRITERIA = [
     { key: 'muc_tiêu', label: '1. Mục tiêu bài dạy (Kiến thức, năng lực, phẩm chất)' },
     { key: 'hoat_dong', label: '2. Tiến trình và chuỗi hoạt động học của học sinh' },
@@ -267,8 +387,8 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                     <div className="font-bold text-slate-800">{t.fullName}</div>
                     <div className="text-[10px] text-slate-400 mt-0.5">{t.email}</div>
                   </div>
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full font-bold text-[9px]">
-                    Đã nộp bài
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full font-bold text-[9px]">
+                    Đã kích hoạt
                   </span>
                 </div>
               ))}
@@ -305,6 +425,38 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Tuần thanh tra</div>
                   <div className="text-base font-black text-brand-primary">Tuần học {selectedWeek}</div>
                 </div>
+              </div>
+
+              {/* Danh sách các file nộp thật quét từ Drive */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                  Học liệu thật trên Drive của giáo viên
+                </h4>
+                {loadingFiles ? (
+                  <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 text-xs text-slate-500 text-center animate-pulse">
+                    🔄 Đang quét trực tiếp Google Drive của giáo viên...
+                  </div>
+                ) : scannedFiles.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic p-3 border border-dashed border-slate-200 rounded-xl bg-slate-50">Thư mục nộp bài của giáo viên tuần này trống.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {scannedFiles.map((file, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 text-xs">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-primary hover:underline font-bold truncate max-w-[200px]"
+                        >
+                          📄 {file.name}
+                        </a>
+                        <span className="text-[9px] font-bold text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-1.5 py-0.5 rounded uppercase shrink-0">
+                          {file.type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Form đánh giá các tiêu chí */}
