@@ -115,7 +115,7 @@ export default function Home() {
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800/80 active:scale-[0.98] transition-all px-4 py-3.5 text-sm font-semibold text-slate-200 cursor-pointer disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800/80 active:scale-[0.98] transition-all px-4 py-4 text-sm font-bold text-slate-200 cursor-pointer disabled:opacity-50"
             >
               <Image
                 src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -125,64 +125,6 @@ export default function Home() {
               />
               {loading ? 'Đang kết nối...' : 'Tiếp tục với tài khoản Google'}
             </button>
-
-            <div className="relative flex py-3 items-center text-xs text-slate-600 uppercase">
-              <div className="flex-grow border-t border-slate-800"></div>
-              <span className="mx-4">Hoặc trải nghiệm nhanh</span>
-              <div className="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            {/* Chế độ Demo dùng thử */}
-            {(!demoMode) ? (
-              <button
-                onClick={() => setDemoMode(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-[0.98] text-white transition-all px-4 py-3.5 text-sm font-semibold cursor-pointer shadow-lg shadow-orange-600/10"
-              >
-                🚀 Bật chế độ dùng thử (Demo)
-              </button>
-            ) : (
-              <div className="space-y-3 p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 backdrop-blur-sm animate-fade-in">
-                <div className="text-xs text-orange-400 font-bold uppercase tracking-wider mb-2 text-center">
-                  Vui lòng chọn vai trò để chạy Demo
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => selectDemoRole('teacher')}
-                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-orange-500/40 hover:bg-slate-900 transition-all text-xs font-semibold cursor-pointer text-slate-200"
-                  >
-                    <span className="text-xl mb-1">👩‍🏫</span>
-                    Giáo viên
-                  </button>
-                  <button
-                    onClick={() => selectDemoRole('lead')}
-                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-orange-500/40 hover:bg-slate-900 transition-all text-xs font-semibold cursor-pointer text-slate-200"
-                  >
-                    <span className="text-xl mb-1">🧑‍💼</span>
-                    Khối trưởng
-                  </button>
-                  <button
-                    onClick={() => selectDemoRole('bgh')}
-                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-orange-500/40 hover:bg-slate-900 transition-all text-xs font-semibold cursor-pointer text-slate-200"
-                  >
-                    <span className="text-xl mb-1">🏫</span>
-                    Ban Giám Hiệu
-                  </button>
-                  <button
-                    onClick={() => selectDemoRole('super_admin')}
-                    className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:border-orange-500/40 hover:bg-slate-900 transition-all text-xs font-semibold cursor-pointer text-slate-200"
-                  >
-                    <span className="text-xl mb-1">⚙️</span>
-                    Super Admin
-                  </button>
-                </div>
-                <button
-                  onClick={() => setDemoMode(false)}
-                  className="w-full text-center text-xs text-slate-500 hover:text-slate-400 mt-2 block"
-                >
-                  Quay lại đăng nhập thông thường
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Note Box */}

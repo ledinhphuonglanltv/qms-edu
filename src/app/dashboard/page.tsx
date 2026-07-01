@@ -8,40 +8,20 @@ import BghDashboard from '@/features/bgh-dashboard/components/BghDashboard';
 import { UserRole, UserStatus } from '@/constants/roles';
 import { supabase } from '@/services/supabaseClient';
 
-interface DemoUser {
-  id?: string;
+interface UserProfileData {
+  id: string;
   fullName: string;
   role: UserRole;
   grade: string;
   status: UserStatus;
-  email?: string;
+  email: string;
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<DemoUser | null>(null);
+  const [user, setUser] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRealAuth, setIsRealAuth] = useState(false);
 
   useEffect(() => {
-    // 1. Kiểm tra xem có đang chạy Demo Mode hay không
-    const demoRole = localStorage.getItem('qms_demo_role');
-    const demoName = localStorage.getItem('qms_user_name');
-    const demoGrade = localStorage.getItem('qms_user_grade');
-    const demoStatus = localStorage.getItem('qms_user_status') as UserStatus || 'approved';
-
-    if (demoRole) {
-      setUser({
-        fullName: demoName || '',
-        role: demoRole as UserRole,
-        grade: demoGrade || '',
-        status: demoStatus,
-      });
-      setIsRealAuth(false);
-      setLoading(false);
-      return;
-    }
-
-    // 2. Chế độ Supabase Auth thật
     const checkUserSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -52,8 +32,6 @@ export default function DashboardPage() {
           return;
         }
 
-        setIsRealAuth(true);
-
         // Truy vấn thông tin profile của giáo viên từ database
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -62,7 +40,6 @@ export default function DashboardPage() {
           .single();
 
         if (error && error.code !== 'PGRST116') {
-          // PGRST116 nghĩa là không tìm thấy bản ghi (no rows returned), đây là trường hợp user mới chưa tạo profile
           console.error('Lỗi tải hồ sơ:', error);
         }
 
@@ -80,10 +57,10 @@ export default function DashboardPage() {
           setUser({
             id: session.user.id,
             fullName: '',
-            role: 'teacher', // Mặc định là Giáo viên
+            role: 'teacher', // Mặc định tự đăng ký là Giáo viên
             grade: '',
             status: 'pending',
-            email: session.user.email,
+            email: session.user.email || '',
           });
         }
       } catch (err) {
@@ -111,62 +88,47 @@ export default function DashboardPage() {
 
   const handleRegisterSuccess = async (fullName: string, grade: string) => {
     setLoading(true);
-    
-    if (isRealAuth) {
-      // 1. Lưu thông tin thật vào database Supabase
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { error } = await supabase.from('profiles').upsert({
-            id: session.user.id,
-            email: session.user.email,
-            full_name: fullName,
-            grade: grade,
-            role: 'teacher', // Mặc định giáo viên tự đăng ký
-            status: 'pending', // Chờ duyệt thủ công
-            updated_at: new Date().toISOString(),
-          });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-          if (error) throw error;
+      const { error } = await supabase.from('profiles').upsert({
+        id: session.user.id,
+        email: session.user.email,
+        full_name: fullName,
+        grade: grade,
+        role: 'teacher', // Mặc định giáo viên tự đăng ký
+        status: 'pending', // Chờ duyệt thủ công
+        updated_at: new Date().toISOString(),
+      });
 
-          setUser({
-            id: session.user.id,
-            fullName,
-            role: 'teacher',
-            grade,
-            status: 'pending',
-            email: session.user.email || '',
-          });
-        }
-      } catch (err: any) {
-        console.error('Lỗi đăng ký hồ sơ:', err);
-        alert(`Không thể lưu hồ sơ: ${err.message || 'Lỗi kết nối database.'}`);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // 2. Chế độ Demo
-      localStorage.setItem('qms_user_name', fullName);
-      localStorage.setItem('qms_user_grade', grade);
-      localStorage.setItem('qms_user_status', 'pending');
+      if (error) throw error;
 
       setUser({
+        id: session.user.id,
         fullName,
         role: 'teacher',
         grade,
         status: 'pending',
+        email: session.user.email || '',
       });
+    } catch (err: any) {
+      console.error('Lỗi đăng ký hồ sơ:', err);
+      alert(`Không thể lưu hồ sơ: ${err.message || 'Lỗi kết nối database.'}`);
+    } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    if (isRealAuth) {
+    setLoading(true);
+    try {
       await supabase.auth.signOut();
-    } else {
-      localStorage.clear();
+    } catch (err) {
+      console.error('Lỗi đăng xuất:', err);
+    } finally {
+      window.location.href = '/';
     }
-    window.location.href = '/';
   };
 
   if (loading) {
@@ -180,15 +142,15 @@ export default function DashboardPage() {
     );
   }
 
-  // Nếu không đăng nhập hoặc không có demo user
+  // Nếu chưa đăng nhập
   if (!user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 text-slate-100 p-8 text-center">
         <div className="max-w-md p-6 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-sm space-y-6">
           <div className="text-5xl">🔒</div>
-          <h2 className="text-xl font-bold">Chưa kết nối tài khoản</h2>
+          <h2 className="text-xl font-bold">Chưa đăng nhập tài khoản</h2>
           <p className="text-sm text-slate-400">
-            Vui lòng đăng nhập qua Google hoặc bật chế độ dùng thử (Demo) tại trang chủ để tiếp tục.
+            Vui lòng đăng nhập qua Google tại trang chủ để tiếp tục truy cập hệ thống.
           </p>
           <button
             onClick={() => window.location.href = '/'}
@@ -221,36 +183,19 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-black">Yêu cầu đang chờ duyệt</h2>
           <div className="space-y-2 text-sm text-slate-400">
             <p>Xin chào <strong>{user.fullName}</strong>,</p>
-            <p>Hồ sơ của Thầy/Cô đã được gửi tới Khối trưởng và Ban Giám Hiệu phê duyệt.</p>
+            <p>Hồ sơ đăng ký của Thầy/Cô đã được ghi nhận và đang chờ Khối trưởng hoặc Ban Giám Hiệu phê duyệt để kích hoạt tài khoản.</p>
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 mt-4 text-left space-y-1">
               <div>• <strong>Họ tên:</strong> {user.fullName}</div>
-              <div>• <strong>Cấp quyền đề xuất:</strong> Giáo viên</div>
-              <div>• <strong>Phân khối:</strong> {user.grade}</div>
+              <div>• <strong>Email:</strong> {user.email}</div>
+              <div>• <strong>Đăng ký khối:</strong> {user.grade}</div>
             </div>
           </div>
-          <div className="pt-4 space-y-3">
-            {/* Nút giả lập duyệt nhanh cho Khầy Được test Demo */}
-            <button
-              onClick={async () => {
-                if (isRealAuth && user.id) {
-                  // Cập nhật lên Supabase thật
-                  setLoading(true);
-                  await supabase.from('profiles').update({ status: 'approved' }).eq('id', user.id);
-                  window.location.reload();
-                } else {
-                  localStorage.setItem('qms_user_status', 'approved');
-                  window.location.reload();
-                }
-              }}
-              className="w-full bg-gradient-to-r from-blue-600 to-orange-500 text-white rounded-xl py-3 font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer text-xs"
-            >
-              ⚡ Click nhanh để Duyệt tài khoản (Demo & Real DB)
-            </button>
+          <div className="pt-4">
             <button
               onClick={handleLogout}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl py-3 font-semibold transition-all cursor-pointer text-sm"
+              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl py-3.5 font-bold transition-all cursor-pointer text-sm"
             >
-              Đăng xuất
+              Đăng xuất tài khoản
             </button>
           </div>
         </div>
@@ -271,11 +216,13 @@ export default function DashboardPage() {
         <BghDashboard user={user} onLogout={handleLogout} />
       )}
       {user.role === 'super_admin' && (
-        <div className="p-8 text-center bg-slate-950 min-h-screen text-slate-200">
-          <h1 className="text-3xl font-bold">Super Admin Dashboard</h1>
-          <p className="mt-4 text-slate-400">Đang phát triển các chức năng cài đặt nâng cao...</p>
-          <button onClick={() => { localStorage.setItem('qms_demo_role', 'bgh'); window.location.reload(); }} className="mt-6 px-6 py-2 bg-orange-600 rounded-lg cursor-pointer font-bold text-xs">Xem BGH Dashboard</button>
-          <button onClick={handleLogout} className="mt-6 ml-4 px-6 py-2 bg-slate-800 rounded-lg cursor-pointer font-bold text-xs">Đăng xuất</button>
+        <div className="p-8 text-center bg-slate-950 min-h-screen text-slate-200 flex flex-col items-center justify-center space-y-4">
+          <h1 className="text-3xl font-black bg-gradient-to-r from-blue-500 to-orange-500 bg-clip-text text-transparent">Super Admin Workspace</h1>
+          <p className="text-slate-400 text-sm max-w-sm">Tài khoản quản trị cấp cao của hệ thống QMS-EDU.</p>
+          <div className="flex gap-4 mt-6">
+            <button onClick={() => window.location.href = '/dashboard/library'} className="px-6 py-2.5 bg-orange-600 rounded-xl font-bold text-xs cursor-pointer">Vào Kho Học Liệu Vàng</button>
+            <button onClick={handleLogout} className="px-6 py-2.5 bg-slate-800 rounded-xl font-bold text-xs cursor-pointer text-slate-300">Đăng xuất</button>
+          </div>
         </div>
       )}
     </>
