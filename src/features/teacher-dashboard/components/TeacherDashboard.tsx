@@ -56,11 +56,11 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
     [FILE_TYPES.DCTD]: false,
   });
 
-  // File states cho 3 loại tài liệu
-  const [files, setFiles] = useState<{ [key: string]: DemoFile | null }>({
-    [FILE_TYPES.KHBD]: null,
-    [FILE_TYPES.KHGD]: null,
-    [FILE_TYPES.DCTD]: null,
+  // File states cho 3 loại tài liệu (lưu dạng mảng để hỗ trợ nộp nhiều file cùng loại)
+  const [files, setFiles] = useState<{ [key: string]: DemoFile[] }>({
+    [FILE_TYPES.KHBD]: [],
+    [FILE_TYPES.KHGD]: [],
+    [FILE_TYPES.DCTD]: [],
   });
 
   // Lưu trữ các bản nộp tuần của giáo viên này
@@ -116,9 +116,9 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
       if (week === selectedWeek) {
         setTeacherNote(subData.teacherNote);
         const fileMap = {
-          [FILE_TYPES.KHBD]: subData.files.find(f => f.type === FILE_TYPES.KHBD) || null,
-          [FILE_TYPES.KHGD]: subData.files.find(f => f.type === FILE_TYPES.KHGD) || null,
-          [FILE_TYPES.DCTD]: subData.files.find(f => f.type === FILE_TYPES.DCTD) || null,
+          [FILE_TYPES.KHBD]: subData.files.filter(f => f.type === FILE_TYPES.KHBD),
+          [FILE_TYPES.KHGD]: subData.files.filter(f => f.type === FILE_TYPES.KHGD),
+          [FILE_TYPES.DCTD]: subData.files.filter(f => f.type === FILE_TYPES.DCTD),
         };
         setFiles(fileMap);
       }
@@ -207,17 +207,17 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
       if (sub) {
         setTeacherNote(sub.teacherNote || '');
         const fileMap = {
-          [FILE_TYPES.KHBD]: sub.files.find(f => f.type === FILE_TYPES.KHBD) || null,
-          [FILE_TYPES.KHGD]: sub.files.find(f => f.type === FILE_TYPES.KHGD) || null,
-          [FILE_TYPES.DCTD]: sub.files.find(f => f.type === FILE_TYPES.DCTD) || null,
+          [FILE_TYPES.KHBD]: sub.files.filter(f => f.type === FILE_TYPES.KHBD),
+          [FILE_TYPES.KHGD]: sub.files.filter(f => f.type === FILE_TYPES.KHGD),
+          [FILE_TYPES.DCTD]: sub.files.filter(f => f.type === FILE_TYPES.DCTD),
         };
         setFiles(fileMap);
       } else {
         setTeacherNote('');
         setFiles({
-          [FILE_TYPES.KHBD]: null,
-          [FILE_TYPES.KHGD]: null,
-          [FILE_TYPES.DCTD]: null,
+          [FILE_TYPES.KHBD]: [],
+          [FILE_TYPES.KHGD]: [],
+          [FILE_TYPES.DCTD]: [],
         });
       }
     } else {
@@ -278,22 +278,23 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
       setFiles(prev => ({
         ...prev,
-        [type]: {
-          name: standardName,
-          type: type,
-          size: `${Math.round(file.size / 1024)} KB`,
-          uploadedAt: new Date().toISOString().split('T')[0]
-        }
+        [type]: [
+          ...(prev[type] || []),
+          {
+            id: Math.random().toString(36).substring(7),
+            name: standardName,
+            type: type,
+            size: `${Math.round(file.size / 1024)} KB`,
+            uploadedAt: new Date().toISOString().split('T')[0]
+          }
+        ]
       }));
     }
   };
 
   // Bấm nút xóa file đã chọn (và xóa trên Drive nếu là real)
-  const handleRemoveFile = async (type: string) => {
-    const currentFile = files[type];
-    if (!currentFile) return;
-
-    if (isReal && currentFile.id) {
+  const handleRemoveFile = async (type: string, fileId: string) => {
+    if (isReal && fileId) {
       if (!confirm('Thầy/Cô có chắc chắn muốn xóa file này trên Google Drive của nhà trường?')) return;
       
       setUploadingTypes(prev => ({ ...prev, [type]: true }));
@@ -304,7 +305,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            fileId: currentFile.id,
+            fileId: fileId,
             teacherId: user.id,
             weekNumber: selectedWeek,
           }),
@@ -312,7 +313,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
         const result = await res.json();
         if (res.ok) {
-          showToast(`Đã xóa file ${type} thành công trên Google Drive!`, 'success');
+          showToast(`Đã xóa file thành công trên Google Drive!`, 'success');
           
           // Tải lại dữ liệu tuần
           await loadRealSubmission(selectedWeek);
@@ -329,14 +330,14 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
       // Chế độ demo
       setFiles(prev => ({
         ...prev,
-        [type]: null
+        [type]: (prev[type] || []).filter(f => f.id !== fileId)
       }));
     }
   };
 
   // Xác nhận nộp giáo án tuần và lưu ý kiến giáo viên
   const handleSendSubmission = async () => {
-    const activeFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
+    const activeFiles = Object.values(files).flat();
     if (activeFiles.length === 0) {
       showToast('Thầy/Cô vui lòng tải lên ít nhất một tài liệu giảng dạy trước khi xác nhận gửi!', 'warning');
       return;
@@ -371,7 +372,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
     } else {
       // Chế độ demo
       setTimeout(() => {
-        const uploadedFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
+        const uploadedFiles = Object.values(files).flat();
         
         const newSubmission: DemoSubmission = {
           weekNumber: selectedWeek,
@@ -620,22 +621,28 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.keys(FILE_TYPE_LABELS).map((type) => {
-                const file = files[type];
+                const typeFiles = files[type] || [];
                 const isUploading = uploadingTypes[type];
                 
+                const reqCount = type === FILE_TYPES.KHBD 
+                  ? (deadlineConfig?.khbd_required_files !== null && deadlineConfig?.khbd_required_files !== undefined ? Number(deadlineConfig.khbd_required_files) : 2) 
+                  : type === FILE_TYPES.KHGD 
+                    ? (deadlineConfig?.khgd_required_files !== null && deadlineConfig?.khgd_required_files !== undefined ? Number(deadlineConfig.khgd_required_files) : 1) 
+                    : (deadlineConfig?.dctd_required_files !== null && deadlineConfig?.dctd_required_files !== undefined ? Number(deadlineConfig.dctd_required_files) : 1);
+
                 return (
-                  <div key={type} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary transition-all flex flex-col justify-between min-h-[170px] shadow-sm relative group">
-                    <div className="space-y-2">
+                  <div key={type} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary transition-all flex flex-col justify-between min-h-[220px] shadow-sm relative group">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black text-brand-primary bg-brand-primary-light/50 border border-brand-primary-light px-2 py-0.5 rounded-full uppercase">
                           {type}
                         </span>
-                        {file && (
-                          <span className="text-[10px] text-slate-400 font-semibold">{file.size}</span>
-                        )}
+                        <span className="text-[10px] text-slate-400 font-bold bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
+                          Yêu cầu: {typeFiles.length}/{reqCount} file
+                        </span>
                       </div>
                       
-                      <h4 className="text-xs font-bold text-slate-800 leading-tight">
+                      <h4 className="text-xs font-black text-slate-800 leading-tight">
                         {FILE_TYPE_LABELS[type as keyof typeof FILE_TYPE_LABELS]}
                       </h4>
                       
@@ -643,42 +650,50 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                         <div className="flex items-center gap-2 text-[10px] text-brand-primary font-bold mt-3">
                           <span className="animate-spin">🔄</span> Đang xử lý...
                         </div>
-                      ) : file ? (
-                        <div className="text-[10px] text-slate-500 leading-snug break-all font-medium mt-2">
-                          {file.url ? (
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-brand-primary hover:underline font-bold"
+                      ) : typeFiles.length > 0 ? (
+                        <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                          {typeFiles.map((file) => (
+                            <div 
+                              key={file.id || file.name} 
+                              className="flex justify-between items-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] text-slate-650 leading-snug shadow-sm"
                             >
-                              📄 {file.name}
-                            </a>
-                          ) : (
-                            <span>📄 {file.name}</span>
-                          )}
-                          <div className="text-[9px] text-slate-400 mt-1">Trạng thái: Đã đồng bộ Drive</div>
+                              <div className="truncate flex-grow font-bold">
+                                {file.url ? (
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-brand-primary hover:underline truncate block"
+                                  >
+                                    📄 {file.name}
+                                  </a>
+                                ) : (
+                                  <span className="truncate block text-slate-700">📄 {file.name}</span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                disabled={isUploading}
+                                onClick={() => handleRemoveFile(type, file.id || '')}
+                                className="text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg p-1.5 transition-all cursor-pointer shadow-sm shrink-0 active:scale-90"
+                                title="Xóa tệp tin"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <p className="text-[10px] text-slate-400 mt-2 font-medium">
-                          Chưa tải tài liệu lên. Quy chuẩn tên file: <code className="text-brand-primary block mt-1">{type}_Tuan{String(selectedWeek).padStart(2, '0')}_{[user.fullName.replace(/\s+/g, '')]}.docx</code>
+                          Chưa tải tài liệu lên. Quy chuẩn tên file: <code className="text-brand-primary block mt-1">{type}_Tuan{String(selectedWeek).padStart(2, '0')}_{[user.fullName.replace(/\s+/g, '')]}_TenFile.docx</code>
                         </p>
                       )}
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-slate-100">
-                      {file ? (
-                        <button
-                          type="button"
-                          disabled={isUploading}
-                          onClick={() => handleRemoveFile(type)}
-                          className="w-full py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
-                        >
-                          Xóa tài liệu
-                        </button>
-                      ) : (
-                        <label className="w-full block text-center py-2 bg-brand-primary-light/40 hover:bg-brand-primary-light/60 text-brand-primary border border-brand-primary-light rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive">
-                          Tải file Word lên
+                      {typeFiles.length < reqCount ? (
+                        <label className="w-full block text-center py-2 bg-brand-primary-light/40 hover:bg-brand-primary-light/60 text-brand-primary border border-brand-primary-light rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive shadow-sm">
+                          Tải file Word lên ({typeFiles.length}/{reqCount})
                           <input
                             type="file"
                             accept=".doc,.docx"
@@ -687,6 +702,10 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                             className="hidden"
                           />
                         </label>
+                      ) : (
+                        <div className="w-full text-center py-2 bg-emerald-50 text-emerald-600 border border-emerald-150 rounded-xl text-[10px] font-bold select-none shadow-sm">
+                          ✓ Đã nộp đủ ({typeFiles.length}/{reqCount})
+                        </div>
                       )}
                     </div>
                   </div>

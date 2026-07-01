@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabaseClient';
-import { getOrCreateFolder, uploadFile } from '@/services/googleDriveService';
+import { getOrCreateFolder, uploadFile, listFilesInFolder, deleteFile } from '@/services/googleDriveService';
 
 // Hàm helper loại bỏ dấu tiếng Việt và ký tự đặc biệt để đặt tên thư mục/file chuẩn xác
 function removeVietnameseTones(str: string): string {
@@ -115,10 +115,26 @@ export async function POST(req: NextRequest) {
     const weekFolderName = `Tuan-${weekNumber}`;
     const weekFolderId = await getOrCreateFolder(weekFolderName, teacherFolderId);
 
-    // 5. Chuẩn hóa tên file theo quy chuẩn (ví dụ: KHBD_Tuan03_DoThiAnhTuyet.docx)
+    // 5. Chuẩn hóa tên file theo quy chuẩn (ví dụ: KHBD_Tuan03_DoThiAnhTuyet_GiaoAnToan1.docx)
     const teacherNameNoSign = removeVietnameseTones(teacherName);
     const weekStr = String(weekNumber).padStart(2, '0');
-    const standardFileName = `${fileType}_Tuan${weekStr}_${teacherNameNoSign}.docx`;
+    // Giữ lại tên gốc của file tải lên (không dấu viết liền) để phân biệt các file khác nhau cùng loại
+    const originalFileNameClean = removeVietnameseTones(file.name.replace(/\.docx?$/i, ''));
+    const standardFileName = `${fileType}_Tuan${weekStr}_${teacherNameNoSign}_${originalFileNameClean}.docx`;
+
+    // 5.1 Kiểm tra xem file trùng tên đã tồn tại trên Drive của tuần đó chưa. Nếu có, xóa để ghi đè.
+    try {
+      console.log(`[Drive API] Đang quét kiểm tra file trùng tên: ${standardFileName} trong thư mục ${weekFolderName}...`);
+      const existingFiles = await listFilesInFolder(weekFolderId);
+      const duplicateFile = existingFiles.find(f => f.name === standardFileName);
+      if (duplicateFile) {
+        console.log(`[Drive API] Phát hiện file cũ trùng tên đã tồn tại (ID: ${duplicateFile.id}). Tiến hành xóa trước khi upload bản mới...`);
+        await deleteFile(duplicateFile.id);
+        console.log(`[Drive API] Đã xóa file trùng tên cũ thành công.`);
+      }
+    } catch (scanErr: any) {
+      console.warn('[Drive API] Không thể quét/xóa file trùng tên cũ:', scanErr.message || scanErr);
+    }
 
     // 6. Convert file thành Buffer để upload qua Drive API
     const fileBytes = await file.arrayBuffer();
