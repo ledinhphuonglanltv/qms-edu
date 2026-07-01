@@ -198,16 +198,16 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* HEADER: OLM Style - Indigo Background */}
-      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
+      {/* HEADER: OLM Style - Brand Primary Background */}
+      <header className="relative z-10 bg-brand-primary px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-xs font-black text-white">
               Q
             </div>
           </div>
           <div>
-            <div className="text-sm font-black tracking-wider text-white">QMS-EDU ADMIN</div>
+            <div className="text-sm font-black text-white leading-none">QMS-EDU ADMIN</div>
             <div className="text-[10px] text-indigo-200 font-medium">Bảng điều khiển quản trị hệ thống</div>
           </div>
         </div>
@@ -216,13 +216,13 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         <div className="flex items-center gap-4">
           <div className="hidden md:block text-right">
             <div className="text-xs font-bold text-white">{user.fullName}</div>
-            <div className="text-[10px] text-white font-bold bg-orange-500 px-2 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
+            <div className="text-[10px] text-white font-bold bg-brand-accent px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
               Super Admin
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer btn-interactive"
           >
             Đăng xuất
           </button>
@@ -235,7 +235,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           onClick={() => setActiveTab('members')}
           className={`px-4 py-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === 'members'
-              ? 'border-orange-500 text-orange-500'
+              ? 'border-brand-accent text-brand-accent font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
@@ -245,7 +245,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           onClick={() => setActiveTab('config')}
           className={`px-4 py-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === 'config'
-              ? 'border-orange-500 text-orange-500'
+              ? 'border-brand-accent text-brand-accent font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
@@ -254,7 +254,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-grow p-6 space-y-6 max-w-7xl w-full mx-auto">
+      <main className="flex-grow p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto">
         
         {/* STATS OVERVIEW CARDS: OLM Light style */}
         {activeTab === 'members' && (
@@ -264,11 +264,11 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
               <div className="text-2xl font-black mt-1 text-slate-900">{stats.total}</div>
               <div className="text-[10px] text-slate-500 mt-0.5">Tài khoản Google kết nối</div>
             </div>
-            <div className="p-4 rounded-xl border border-orange-200 bg-orange-50/50 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 h-10 w-10 bg-orange-500/5 rounded-full blur-md"></div>
-              <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Chờ phê duyệt</div>
-              <div className="text-2xl font-black mt-1 text-orange-600">{stats.pending}</div>
-              <div className="text-[10px] text-orange-500 mt-0.5">Cần duyệt phân vai trò</div>
+            <div className="p-4 rounded-xl border border-brand-accent/30 bg-brand-accent-light/10 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 h-10 w-10 bg-brand-accent/5 rounded-full blur-md"></div>
+              <div className="text-[10px] font-bold text-brand-accent uppercase tracking-wider">Chờ phê duyệt</div>
+              <div className="text-2xl font-black mt-1 text-brand-accent">{stats.pending}</div>
+              <div className="text-[10px] text-brand-accent mt-0.5">Cần duyệt phân vai trò</div>
             </div>
             <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
               <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Đã kích hoạt</div>
@@ -302,7 +302,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   placeholder="Tìm thành viên (Tên, Email)..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                 />
               </div>
 
@@ -311,7 +311,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <select
                   value={roleFilter}
                   onChange={e => setRoleFilter(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-indigo-500 shadow-sm"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-brand-primary shadow-sm"
                 >
                   <option value="all">Tất cả vai trò</option>
                   <option value="teacher">Giáo viên</option>
@@ -323,7 +323,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-indigo-500 shadow-sm"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-brand-primary shadow-sm"
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="pending">Chờ phê duyệt</option>
@@ -341,8 +341,8 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
               </div>
             </div>
 
-            {/* Members Table */}
-            <div className="overflow-x-auto">
+            {/* Desktop View: Members Table (Hidden on Mobile) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
@@ -358,7 +358,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                     <tr>
                       <td colSpan={5} className="p-12 text-center text-slate-400">
                         <div className="flex flex-col items-center gap-2">
-                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
+                          <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-accent border-t-transparent"></div>
                           <span className="font-semibold">Đang tải danh sách thành viên...</span>
                         </div>
                       </td>
@@ -388,7 +388,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                               value={profile.role}
                               disabled={isProcessing}
                               onChange={e => handleUpdateUser(profile.id, { role: e.target.value as UserRole })}
-                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-indigo-500"
+                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-brand-primary"
                             >
                               <option value="teacher">👨‍🏫 Giáo viên</option>
                               <option value="lead">🧑‍💼 Khối trưởng</option>
@@ -403,7 +403,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                               value={profile.grade || ''}
                               disabled={isProcessing}
                               onChange={e => handleUpdateUser(profile.id, { grade: e.target.value })}
-                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-indigo-500"
+                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-brand-primary"
                             >
                               <option value="">Không phân khối</option>
                               {GRADES.map(g => (
@@ -434,7 +434,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                                 <button
                                   onClick={() => handleUpdateUser(profile.id, { status: 'approved' })}
                                   disabled={isProcessing}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
                                 >
                                   Duyệt
                                 </button>
@@ -443,7 +443,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                                 <button
                                   onClick={() => handleUpdateUser(profile.id, { status: 'rejected' })}
                                   disabled={isProcessing}
-                                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 disabled:opacity-50 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 disabled:opacity-50 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
                                 >
                                   Từ chối
                                 </button>
@@ -457,6 +457,105 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile View: Cards list (Visible only on mobile screen widths) */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {loading ? (
+                <div className="p-12 text-center text-slate-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-accent border-t-transparent"></div>
+                    <span className="font-semibold">Đang tải danh sách...</span>
+                  </div>
+                </div>
+              ) : filteredProfiles.length === 0 ? (
+                <div className="p-12 text-center text-slate-500 font-medium">
+                  Không tìm thấy thành viên nào khớp bộ lọc.
+                </div>
+              ) : (
+                filteredProfiles.map(profile => {
+                  const isProcessing = actionLoading === profile.id;
+                  
+                  return (
+                    <div key={profile.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                      {/* Tên & Status Badge */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <div className="font-bold text-slate-800 text-sm leading-tight">{profile.full_name || '(Chưa khai báo)'}</div>
+                          <div className="text-[10px] text-slate-500 font-medium mt-0.5">{profile.email}</div>
+                        </div>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
+                          profile.status === 'approved'
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                            : profile.status === 'rejected'
+                            ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                            : 'bg-orange-50 text-orange-600 border border-orange-200'
+                        }`}>
+                          {profile.status === 'approved' && 'Đã duyệt'}
+                          {profile.status === 'rejected' && 'Từ chối'}
+                          {profile.status === 'pending' && 'Chờ duyệt'}
+                        </span>
+                      </div>
+
+                      {/* Selectors grid */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase">Vai trò</label>
+                          <select
+                            value={profile.role}
+                            disabled={isProcessing}
+                            onChange={e => handleUpdateUser(profile.id, { role: e.target.value as UserRole })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-brand-primary"
+                          >
+                            <option value="teacher">👨‍🏫 Giáo viên</option>
+                            <option value="lead">🧑‍💼 Khối trưởng</option>
+                            <option value="bgh">🏫 Ban Giám Hiệu</option>
+                            <option value="super_admin">⚙️ Super Admin</option>
+                          </select>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-400 uppercase">Khối</label>
+                          <select
+                            value={profile.grade || ''}
+                            disabled={isProcessing}
+                            onChange={e => handleUpdateUser(profile.id, { grade: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-brand-primary"
+                          >
+                            <option value="">Không phân khối</option>
+                            {GRADES.map(g => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Actions buttons */}
+                      <div className="flex justify-end gap-2 pt-2">
+                        {profile.status !== 'approved' && (
+                          <button
+                            onClick={() => handleUpdateUser(profile.id, { status: 'approved' })}
+                            disabled={isProcessing}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
+                          >
+                            Duyệt tài khoản
+                          </button>
+                        )}
+                        {profile.status !== 'rejected' && (
+                          <button
+                            onClick={() => handleUpdateUser(profile.id, { status: 'rejected' })}
+                            disabled={isProcessing}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 disabled:opacity-50 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
+                          >
+                            Từ chối
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
           </div>
         )}
 
@@ -464,7 +563,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         {activeTab === 'config' && (
           <div className="border border-slate-200 bg-white rounded-xl p-6 max-w-2xl mx-auto shadow-sm animate-fade-in">
             <h2 className="text-sm font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <span className="text-orange-500 text-base">⚙️</span> Cấu hình Năm học & Cổng Google Drive
+              <span className="text-brand-accent text-base">⚙️</span> Cấu hình Năm học & Cổng Google Drive
             </h2>
 
             <form onSubmit={handleSaveConfig} className="space-y-5">
@@ -477,7 +576,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   placeholder="Ví dụ: 2026-2027"
                   value={config.school_year}
                   onChange={e => setConfig(prev => ({ ...prev, school_year: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors shadow-sm"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">Dùng để định danh cấu trúc năm nộp tài liệu.</p>
               </div>
@@ -489,7 +588,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   required
                   value={config.start_date}
                   onChange={e => setConfig(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors shadow-sm"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">Hệ thống dùng ngày này để tự động tính toán tuần học hiện tại (Tuần 1, Tuần 2,...).</p>
               </div>
@@ -501,7 +600,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   placeholder="Mã ID chuỗi ký tự trên URL của thư mục Google Drive"
                   value={config.google_drive_root_folder_id}
                   onChange={e => setConfig(prev => ({ ...prev, google_drive_root_folder_id: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors shadow-sm"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">Thư mục Google Drive mà nhà trường sở hữu để chứa các tệp nộp bài.</p>
               </div>
@@ -510,7 +609,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <button
                   type="submit"
                   disabled={savingConfig}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-lg text-xs font-bold cursor-pointer transition-all active:scale-[0.98] shadow shadow-indigo-600/10"
+                  className="px-6 py-2.5 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 disabled:opacity-50 text-white rounded-lg text-xs font-bold cursor-pointer transition-all active:scale-[0.98] shadow shadow-indigo-600/10 btn-interactive"
                 >
                   {savingConfig ? 'Đang lưu cấu hình...' : 'Lưu cấu hình hệ thống'}
                 </button>

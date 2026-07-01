@@ -190,8 +190,6 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
     setSmtpLog(null);
 
     const sub = submissions[selectedTeacher.id];
-    
-    // Kiểm tra xem có đang chạy trên tài khoản thật có ID không
     const isReal = 'id' in user && !!user.id;
 
     if (isReal) {
@@ -297,11 +295,11 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* HEADER - OLM Style */}
-      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
+      {/* HEADER - Brand OLM Style */}
+      <header className="relative z-10 bg-brand-primary px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-xs font-black text-white">
               Q
             </div>
           </div>
@@ -314,13 +312,13 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
             <div className="text-xs font-bold text-white">Khối trưởng: {user.fullName}</div>
-            <div className="text-[10px] text-indigo-200 font-bold bg-indigo-800 px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
+            <div className="text-[10px] text-indigo-100 font-bold bg-white/10 px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
               Quản lý: {user.grade}
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-50 hover:text-white cursor-pointer btn-interactive"
           >
             Đăng xuất
           </button>
@@ -328,13 +326,13 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
       </header>
 
       {/* SUB HEADER - TAB / WEEK SELECTOR */}
-      <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+      <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <label className="text-xs font-bold text-slate-500 uppercase">Chọn Tuần kiểm duyệt:</label>
           <select
             value={selectedWeek}
             onChange={(e) => setSelectedWeek(Number(e.target.value))}
-            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
+            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
           >
             {Array.from({ length: totalWeeks }, (_, i) => i + 1).map(w => (
               <option key={w} value={w}>Tuần {w}</option>
@@ -343,12 +341,12 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
         </div>
 
         <div className="text-xs font-bold text-slate-500">
-          Lịch học tuần {selectedWeek}: <span className="text-indigo-600">{formatDate(dateRange.start)}</span> đến <span className="text-indigo-600">{formatDate(dateRange.end)}</span>
+          Lịch học tuần {selectedWeek}: <span className="text-brand-primary">{formatDate(dateRange.start)}</span> đến <span className="text-brand-primary">{formatDate(dateRange.end)}</span>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-grow p-6 space-y-6 max-w-7xl w-full mx-auto">
+      <main className="flex-grow p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto">
         
         {/* Banner Success */}
         {successMsg && (
@@ -360,7 +358,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
         {/* DANH SÁCH GIÁO VIÊN VÀ BÁO CÁO CỦA HỌ */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">
+            <h2 className="text-xs sm:text-sm font-black text-slate-700 uppercase tracking-wider">
               Theo dõi và Duyệt giáo án {user.grade} (Tuần {selectedWeek})
             </h2>
             <span className="text-[10px] text-slate-400 font-bold">Tổng số giáo viên: {teachers.length}</span>
@@ -372,7 +370,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
               const isScanning = scanningId === teacher.id;
 
               return (
-                <div key={teacher.id} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 shadow-sm transition-all flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
+                <div key={teacher.id} className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 shadow-sm transition-all flex flex-col lg:flex-row gap-5 justify-between items-start lg:items-center">
                   
                   {/* Cột 1: Thông tin giáo viên & Ghi chú nộp */}
                   <div className="space-y-2 lg:max-w-sm w-full">
@@ -385,7 +383,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                     </div>
 
                     <div className="text-[11px] text-slate-500 pl-7 space-y-1">
-                      <div>📁 <strong>Thư mục Drive:</strong> <code className="text-indigo-600 text-[10px]">{teacher.driveFolder}</code></div>
+                      <div className="break-all">📁 <strong>Thư mục Drive:</strong> <code className="text-brand-primary text-[10px]">{teacher.driveFolder}</code></div>
                       {sub?.submittedAt ? (
                         <div className="text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2 italic">
                           "Gửi kèm: {sub.teacherNote || 'Không ghi chú'}"
@@ -406,8 +404,8 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                       <div className="space-y-1.5">
                         {sub.files.map((file, i) => (
                           <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 text-[11px]">
-                            <span className="text-slate-700 font-medium truncate max-w-[250px]">📄 {file.fileName}</span>
-                            <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase">{file.fileType}</span>
+                            <span className="text-slate-700 font-medium truncate max-w-[200px] sm:max-w-[280px]">📄 {file.fileName}</span>
+                            <span className="text-[9px] font-bold text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-1.5 py-0.5 rounded uppercase shrink-0">{file.fileType}</span>
                           </div>
                         ))}
                       </div>
@@ -415,7 +413,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                   </div>
 
                   {/* Cột 3: Trạng thái & Tác vụ kiểm duyệt */}
-                  <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto items-stretch lg:items-end justify-between self-stretch">
+                  <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-auto items-center lg:items-end justify-between self-stretch pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                     
                     {/* Badge trạng thái */}
                     <div className="text-right">
@@ -435,7 +433,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                       <button
                         onClick={() => handleScanDrive(teacher.id, teacher.fullName)}
                         disabled={isScanning}
-                        className="px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                        className="px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
                       >
                         {isScanning ? '🔄 Đang quét...' : '🔍 Quét Drive'}
                       </button>
@@ -443,7 +441,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                       <button
                         onClick={() => handleVerifyClick(teacher)}
                         disabled={!sub?.submittedAt}
-                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                        className="px-3 py-2 bg-brand-primary hover:bg-brand-primary-hover disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm btn-interactive"
                       >
                         ⚖️ Duyệt & Gửi mail
                       </button>
@@ -461,7 +459,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
       {selectedTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-blue-600 to-orange-500"></div>
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-brand-primary to-brand-accent"></div>
 
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
               ⚖️ Duyệt hồ sơ nộp Tuần {selectedWeek} - {selectedTeacher.fullName}
@@ -483,7 +481,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                   value={verificationNote}
                   onChange={(e) => setVerificationNote(e.target.value)}
                   placeholder="Nhập nhận xét (ví dụ: Giáo án soạn đúng chuẩn... hoặc Yêu cầu tải thêm file điều chỉnh sau tiết dạy...)"
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                 />
               </div>
 
@@ -499,7 +497,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                 <button
                   onClick={() => setSelectedTeacher(null)}
                   disabled={isSubmitting}
-                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
                 >
                   Hủy bỏ
                 </button>
@@ -507,7 +505,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                 <button
                   onClick={() => submitVerification('incomplete')}
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                  className="px-4 py-2 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Yêu cầu Bổ sung (Mail 🔴)'}
                 </button>
@@ -515,7 +513,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
                 <button
                   onClick={() => submitVerification('verified')}
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm btn-interactive"
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Xác nhận Nộp đủ (Mail 🟢)'}
                 </button>

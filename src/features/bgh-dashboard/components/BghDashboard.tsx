@@ -157,10 +157,10 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
       {/* HEADER - OLM Style */}
-      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
+      <header className="relative z-10 bg-brand-primary px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-xs font-black text-white">
               Q
             </div>
           </div>
@@ -173,13 +173,13 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
             <div className="text-xs font-bold text-white">Thành viên BGH: {user.fullName}</div>
-            <div className="text-[10px] text-indigo-200 font-bold bg-indigo-800 px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
+            <div className="text-[10px] text-indigo-100 font-bold bg-white/10 px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
               Đặc quyền: Tổng thanh tra toàn trường
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer btn-interactive"
           >
             Đăng xuất
           </button>
@@ -187,14 +187,14 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
       </header>
 
       {/* SUB HEADER - WEEK & GRADE FILTER */}
-      <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+      <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <label className="text-xs font-bold text-slate-500 uppercase">Chọn Tuần học:</label>
             <select
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(Number(e.target.value))}
-              className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
+              className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
             >
               {Array.from({ length: totalWeeks }, (_, i) => i + 1).map(w => (
                 <option key={w} value={w}>Tuần {w}</option>
@@ -211,7 +211,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                 setRandomTeacher(null);
                 setSaveSuccess(false);
               }}
-              className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
+              className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
             >
               <option value="Khối 1">Khối 1</option>
               <option value="Khối 2">Khối 2</option>
@@ -225,21 +225,21 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
 
         <button
           onClick={() => window.location.href = '/dashboard/library'}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow transition-all active:scale-[0.98] cursor-pointer"
+          className="px-4 py-2 bg-brand-accent hover:bg-brand-accent-hover text-white rounded-xl text-xs font-bold shadow transition-all active:scale-[0.98] cursor-pointer btn-interactive"
         >
           🏆 Kho Học Liệu Vàng toàn trường
         </button>
       </div>
 
       {/* MAIN CONTENT */}
-      <main className="flex-grow p-6 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="flex-grow p-4 sm:p-6 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* CỘT TRÁI (Lg: 5/12): Dashboard Thống kê và Nút rút ngẫu nhiên */}
         <section className="lg:col-span-5 space-y-6">
           
           {/* Card Lấy Mẫu Ngẫu Nhiên */}
-          <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-sm space-y-4">
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2.5">
+          <div className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white shadow-sm space-y-4">
+            <h2 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2.5">
               🎯 Cơ Chế Chọn Mẫu Ngẫu Nhiên
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed font-medium">
@@ -249,15 +249,15 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
             <button
               onClick={handleRandomSampling}
               disabled={isSampling}
-              className="w-full py-4.5 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all active:scale-[0.98] shadow shadow-indigo-600/10 cursor-pointer"
+              className="w-full py-4 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all active:scale-[0.98] shadow shadow-indigo-600/5 cursor-pointer btn-interactive"
             >
               {isSampling ? '🔄 Đang bốc thăm ngẫu nhiên...' : '🎰 Chọn Ngẫu Nhiên Giáo Viên'}
             </button>
           </div>
 
           {/* Bảng Danh Sách Giáo Viên Trong Khối */}
-          <div className="p-6 rounded-2xl border border-slate-200/80 bg-white shadow-sm space-y-4">
-            <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2.5">
+          <div className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white shadow-sm space-y-4">
+            <h2 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2.5">
               📋 Danh sách Giáo viên {selectedGrade}
             </h2>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -281,20 +281,20 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
         <section className="lg:col-span-7">
           
           {!randomTeacher ? (
-            <div className="h-full min-h-[350px] border border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-white shadow-sm space-y-4">
+            <div className="h-full min-h-[320px] border border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-white shadow-sm space-y-4">
               <div className="text-6xl animate-pulse">🎰</div>
-              <h3 className="text-slate-800 font-black text-sm uppercase">Chưa chọn mẫu giáo viên khảo sát</h3>
+              <h3 className="text-slate-800 font-black text-xs sm:text-sm uppercase">Chưa chọn mẫu giáo viên khảo sát</h3>
               <p className="text-slate-500 text-xs max-w-sm font-medium">
                 Vui lòng click vào nút **"🎰 Chọn Ngẫu Nhiên Giáo Viên"** ở cột bên trái để chọn ra một hồ sơ ngẫu nhiên và tiến hành đánh giá chuyên môn.
               </p>
             </div>
           ) : (
-            <div className="border border-slate-200/80 bg-white rounded-2xl p-6 shadow-sm space-y-6 animate-fade-in">
+            <div className="border border-slate-200/80 bg-white rounded-2xl p-5 sm:p-6 shadow-sm space-y-6 animate-fade-in">
               
               {/* Header profile giáo viên được chọn */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
                 <div className="space-y-1">
-                  <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full uppercase">
+                  <span className="text-[9px] font-black text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-2 py-0.5 rounded-full uppercase">
                     Hồ sơ được chọn
                   </span>
                   <h3 className="text-lg font-black text-slate-800">{randomTeacher.fullName}</h3>
@@ -303,7 +303,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
 
                 <div className="text-left sm:text-right">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Tuần thanh tra</div>
-                  <div className="text-base font-black text-indigo-600">Tuần học {selectedWeek}</div>
+                  <div className="text-base font-black text-brand-primary">Tuần học {selectedWeek}</div>
                 </div>
               </div>
 
@@ -317,7 +317,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                   
                   <div className="space-y-2.5">
                     {CRITERIA.map(item => (
-                      <div key={item.key} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs">
+                      <div key={item.key} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-xs">
                         <span className="font-bold text-slate-700 max-w-md leading-relaxed">{item.label}</span>
                         <div className="flex gap-1 shrink-0">
                           {Object.values(EVALUATION_LEVELS).map(lvl => (
@@ -325,7 +325,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                               key={lvl}
                               type="button"
                               onClick={() => setCriteriaRatings(prev => ({ ...prev, [item.key]: lvl }))}
-                              className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
+                              className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer btn-interactive ${
                                 criteriaRatings[item.key] === lvl
                                   ? EVALUATION_COLORS[lvl as keyof typeof EVALUATION_COLORS]
                                   : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
@@ -352,7 +352,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                           key={lvl}
                           type="button"
                           onClick={() => setBghRating(lvl)}
-                          className={`flex-grow py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          className={`flex-grow py-2 rounded-xl text-xs font-black border transition-all cursor-pointer btn-interactive ${
                             bghRating === lvl
                               ? EVALUATION_COLORS[lvl as keyof typeof EVALUATION_COLORS]
                               : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
@@ -374,7 +374,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                       type="checkbox"
                       checked={isElite}
                       onChange={e => setIsElite(e.target.checked)}
-                      className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className="h-5 w-5 rounded border-slate-300 text-brand-primary focus:ring-brand-primary cursor-pointer"
                     />
                   </div>
                 </div>
@@ -390,7 +390,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                     value={bghFeedback}
                     onChange={e => setBghFeedback(e.target.value)}
                     placeholder="Nhập ghi chú nhận xét chi tiết (ví dụ: cần tăng tính sáng tạo ở hoạt động nhóm, cấu trúc bài dạy chuẩn chỉ...)"
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all shadow-sm"
                   />
                 </div>
 
@@ -399,7 +399,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-xs font-black cursor-pointer transition-all active:scale-[0.98] shadow shadow-indigo-600/10"
+                    className="px-6 py-3 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-xs font-black cursor-pointer transition-all active:scale-[0.98] shadow shadow-indigo-600/5 btn-interactive"
                   >
                     {isSaving ? 'Đang lưu đánh giá...' : 'Lưu kết quả đánh giá'}
                   </button>

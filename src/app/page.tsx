@@ -37,38 +37,38 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900 selection:bg-orange-500 selection:text-white overflow-hidden">
+    <div className="flex min-h-screen flex-col lg:flex-row bg-slate-50 text-slate-900 selection:bg-brand-accent selection:text-white overflow-hidden">
       
       {/* CỘT TRÁI: Banner giới thiệu & Thẩm mỹ cao (Asymmetric split layout) */}
-      <div className="relative flex flex-col justify-between p-8 lg:p-16 lg:w-7/12 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-850 border-b lg:border-b-0 lg:border-r border-indigo-700/20 overflow-hidden">
+      <div className="relative flex flex-col justify-between p-8 lg:p-16 lg:w-7/12 bg-gradient-to-br from-brand-primary via-brand-primary-hover to-indigo-900 border-b lg:border-b-0 lg:border-r border-indigo-700/20 overflow-hidden">
         
         {/* Decorative Grid Background & Light Orbs */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40"></div>
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-white/10 rounded-full blur-[128px] animate-pulse"></div>
-        <div className="absolute -bottom-40 right-20 w-80 h-80 bg-orange-400/10 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute -bottom-40 right-20 w-80 h-80 bg-brand-accent-light/10 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '2s' }}></div>
  
         {/* Header Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white p-0.5 shadow-lg shadow-indigo-600/20">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-base font-black text-white">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-base font-black text-white">
               Q
             </div>
           </div>
           <span className="text-xl font-black tracking-tight text-white">
-            QMS-<span className="text-orange-400">EDU</span>
+            QMS-<span className="text-brand-accent">EDU</span>
           </span>
         </div>
  
         {/* Main Content */}
         <div className="relative z-10 my-auto py-12 lg:py-24 max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-indigo-100 font-medium mb-6 backdrop-blur-sm animate-fade-in">
-            <span className="flex h-2 w-2 rounded-full bg-orange-400 animate-ping"></span>
+            <span className="flex h-2 w-2 rounded-full bg-brand-accent animate-ping"></span>
             Giải pháp số hóa chất lượng sư phạm
           </div>
           <h1 className="text-4xl lg:text-6xl font-black tracking-tight leading-[1.1] mb-6 text-white">
             Hệ thống Báo cáo <br />
             & Quản lý Chất lượng <br />
-            <span className="bg-gradient-to-r from-blue-200 via-orange-300 to-orange-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-100 via-orange-200 to-brand-accent-light bg-clip-text text-transparent">
               Giáo Dục
             </span>
           </h1>
@@ -83,7 +83,7 @@ export default function Home() {
               <span>Quét báo cáo tự động trên Drive</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/20 text-orange-300">✨</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-accent/25 text-brand-accent-light">✨</div>
               <span>Giao diện trực quan khoa học</span>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function Home() {
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all px-4 py-4 text-sm font-bold text-slate-700 shadow-sm cursor-pointer disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all px-4 py-4 text-sm font-bold text-slate-700 shadow-sm cursor-pointer disabled:opacity-50 btn-interactive"
             >
               <Image
                 src="https://www.svgrepo.com/show/475656/google-color.svg"

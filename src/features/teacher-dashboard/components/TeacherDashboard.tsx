@@ -205,11 +205,11 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* 1. TOP HEADER - Indigo Style */}
-      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
+      {/* 1. TOP HEADER - Brand Token Style */}
+      <header className="relative z-10 bg-brand-primary px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-xs font-black text-white">
               Q
             </div>
           </div>
@@ -222,13 +222,13 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
             <div className="text-xs font-bold text-white">Thầy/Cô: {user.fullName}</div>
-            <div className="text-[10px] text-indigo-200 font-bold bg-indigo-800 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
+            <div className="text-[10px] text-indigo-100 font-bold bg-white/10 px-2.5 py-0.5 rounded-full inline-block mt-0.5">
               {user.grade}
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-50 hover:text-white cursor-pointer btn-interactive"
           >
             Đăng xuất
           </button>
@@ -244,7 +244,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             Tuần dạy học (Năm học 2026-2027)
           </div>
           
-          <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto max-h-[150px] md:max-h-[calc(100vh-180px)] pb-2 md:pb-0 pr-1">
+          <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-y-auto max-h-[150px] md:max-h-[calc(100vh-180px)] pb-2 md:pb-0 pr-1 scrollbar-hidden">
             {Array.from({ length: totalWeeks }, (_, idx) => idx + 1).map((week) => {
               const sub = submissions[week];
               const isCurrent = week === currentWeek;
@@ -261,9 +261,9 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                 <button
                   key={week}
                   onClick={() => setSelectedWeek(week)}
-                  className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm ${
+                  className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all shrink-0 shadow-sm btn-interactive ${
                     isSelected
-                      ? 'border-orange-500 bg-orange-50 text-orange-600 font-bold'
+                      ? 'border-brand-accent bg-brand-accent-light/35 text-brand-accent font-bold'
                       : 'border-slate-100 bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -402,12 +402,12 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
                         <button
                           type="button"
                           onClick={() => handleRemoveFile(type)}
-                          className="w-full py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
+                          className="w-full py-2 bg-slate-50 hover:bg-red-50 text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
                         >
                           Xóa & Nộp lại
                         </button>
                       ) : (
-                        <label className="w-full block text-center py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 rounded-xl text-[10px] font-bold cursor-pointer transition-colors">
+                        <label className="w-full block text-center py-2 bg-brand-primary-light/40 hover:bg-brand-primary-light/60 text-brand-primary border border-brand-primary-light rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive">
                           Tải file Word lên
                           <input
                             type="file"
@@ -443,7 +443,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             <button
               onClick={handleSendSubmission}
               disabled={isSubmitting}
-              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md shadow-indigo-600/10"
+              className="px-8 py-3 bg-gradient-to-r from-brand-primary to-brand-accent hover:opacity-90 active:scale-[0.98] disabled:opacity-50 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-md shadow-indigo-600/5 btn-interactive"
             >
               {isSubmitting ? 'Đang tải và gửi báo cáo...' : `Báo cáo nộp chính thức Tuần ${selectedWeek}`}
             </button>
