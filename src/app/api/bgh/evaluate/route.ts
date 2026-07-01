@@ -26,8 +26,10 @@ export async function POST(req: NextRequest) {
 
     console.log(`[BGH API] Lưu đánh giá cho giáo viên ${teacherId}, Tuần ${weekNumber}, Xếp loại: ${bghRating}...`);
 
-    // 1. Lưu kết quả đánh giá (bao gồm cả 6 tiêu chí chi tiết và thông tin file học liệu vàng) vào bảng submissions
-    const { data: submission, error: subErr } = await supabase
+    let submission = null;
+
+    // 1. Thử upsert đầy đủ các cột mới (bao gồm elite_file_name và elite_file_url)
+    const { data: mainData, error: mainErr } = await supabase
       .from('submissions')
       .upsert({
         teacher_id: teacherId,
@@ -52,12 +54,43 @@ export async function POST(req: NextRequest) {
       .select()
       .maybeSingle();
 
-    if (subErr) {
-      console.error('[BGH API] Lỗi lưu database submissions:', subErr);
-      throw subErr;
+    if (mainErr) {
+      console.warn('[BGH API] Lỗi lưu database (có thể do thiếu cột mới hoặc schema cache chưa update), tự động chạy chế độ dự phòng (fallback)...', mainErr.message);
+      
+      // 2. Chế độ dự phòng (fallback): Loại bỏ elite_file_name/url để tránh lỗi sập chức năng đánh giá
+      const { data: fallbackData, error: fallbackErr } = await supabase
+        .from('submissions')
+        .upsert({
+          teacher_id: teacherId,
+          week_number: Number(weekNumber),
+          school_year: schoolYear,
+          bgh_rating: bghRating,
+          bgh_feedback: bghFeedback || '',
+          bgh_rated_at: new Date().toISOString(),
+          bgh_id: bghId,
+          is_elite: isElite === true,
+          criteria_muc_tieu: criteriaRatings?.['muc_tiêu'] || 'Đạt',
+          criteria_hoat_dong: criteriaRatings?.['hoat_dong'] || 'Đạt',
+          criteria_phuong_phap: criteriaRatings?.['phuong_phap'] || 'Đạt',
+          criteria_thiet_bi: criteriaRatings?.['thiet_bi'] || 'Đạt',
+          criteria_danh_gia: criteriaRatings?.['danh_gia'] || 'Đạt',
+          criteria_trinh_bay: criteriaRatings?.['trinh_bay'] || 'Đạt'
+        }, {
+          onConflict: 'teacher_id,week_number,school_year'
+        })
+        .select()
+        .maybeSingle();
+
+      if (fallbackErr) {
+        console.error('[BGH API] Lỗi nặng trong fallback upsert:', fallbackErr);
+        throw fallbackErr;
+      }
+      submission = fallbackData;
+    } else {
+      submission = mainData;
     }
 
-    // 2. Chỉ gửi email cho Giáo viên khi Ban Giám Hiệu có nhập nhận xét/góp ý chi tiết
+    // 3. Chỉ gửi email cho Giáo viên khi Ban Giám Hiệu có nhập nhận xét/góp ý chi tiết
     if (bghFeedback && bghFeedback.trim() !== '') {
       try {
         // Lấy thông tin email và tên của giáo viên từ bảng profiles
