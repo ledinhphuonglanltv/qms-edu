@@ -318,14 +318,16 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
 
     if (isReal) {
       try {
-        // 1. Gọi API gửi mail SMTP thật ở server-side
-        console.log(`[SMTP] Gửi email thông báo trạng thái ${status} tới ${selectedTeacher.email}...`);
+        // 1. Gọi API phản hồi & gửi mail SMTP ở server-side (Bypass RLS)
+        console.log(`[SMTP] Gửi phản hồi trạng thái ${status} tới ${selectedTeacher.email}...`);
         const emailResponse = await fetch('/api/mail', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            teacherId: selectedTeacher.id,
+            leadId: user.id,
             teacherEmail: selectedTeacher.email,
             teacherName: selectedTeacher.fullName,
             weekNumber: selectedWeek,
@@ -338,23 +340,8 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
 
         const emailResult = await emailResponse.json();
         if (!emailResponse.ok) {
-          throw new Error(emailResult.error || 'Lỗi gửi email qua máy chủ SMTP.');
+          throw new Error(emailResult.error || 'Lỗi phản hồi và gửi email thông báo.');
         }
-
-        // 2. Cập nhật trạng thái duyệt vào submissions table trong Supabase
-        const { error } = await supabase
-          .from('submissions')
-          .upsert({
-            teacher_id: selectedTeacher.id,
-            week_number: selectedWeek,
-            school_year: '2026-2027',
-            lead_status: status,
-            lead_note: verificationNote,
-            lead_verified_at: new Date().toISOString(),
-            lead_id: user.id,
-          });
-
-        if (error) throw error;
 
         // Cập nhật giao diện
         setSubmissions(prev => ({
@@ -366,7 +353,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           }
         }));
 
-        showToast(`Đã duyệt báo cáo và gửi email thông báo thành công tới Thầy/Cô ${selectedTeacher.fullName}!`, 'success');
+        showToast(`Đã phản hồi và gửi email thông báo thành công tới Thầy/Cô ${selectedTeacher.fullName}!`, 'success');
       } catch (err: any) {
         console.error('Lỗi duyệt báo cáo:', err);
         showToast(`Kiểm duyệt thất bại: ${err.message || 'Lỗi kết nối.'}`, 'error');
