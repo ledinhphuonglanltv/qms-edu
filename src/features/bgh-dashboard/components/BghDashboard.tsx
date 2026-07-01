@@ -180,6 +180,39 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     }, 1200);
   };
 
+  // Bấm chọn thủ công giáo viên từ danh sách
+  const handleSelectTeacherManual = async (teacher: TeacherMockData) => {
+    setRandomTeacher(teacher);
+    setSaveSuccess(false);
+    setScannedFiles([]);
+    
+    // Reset form đánh giá về trạng thái mặc định
+    setBghRating(EVALUATION_LEVELS.DAT);
+    setBghFeedback('');
+    setIsElite(false);
+    setCriteriaRatings({
+      'muc_tiêu': EVALUATION_LEVELS.DAT,
+      'hoat_dong': EVALUATION_LEVELS.DAT,
+      'phuong_phap': EVALUATION_LEVELS.DAT,
+      'thiet_bi': EVALUATION_LEVELS.DAT,
+      'danh_gia': EVALUATION_LEVELS.DAT,
+      'trinh_bay': EVALUATION_LEVELS.DAT,
+    });
+
+    // Nếu chạy thật -> quét Drive của giáo viên được chọn
+    if (isReal) {
+      await loadTeacherRealFiles(teacher.id);
+    } else {
+      // Mock files ở demo mode
+      setScannedFiles([
+        { name: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, url: '#', uploadedAt: '2026-09-12' },
+        { name: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, url: '#', uploadedAt: '2026-09-12' },
+      ]);
+    }
+    
+    showToast(`Đã chọn Thầy/Cô ${teacher.fullName} để đánh giá chất lượng Tuần ${selectedWeek}.`, 'info');
+  };
+
   // Lưu nhận xét thi đua thật vào database
   const handleSaveEvaluation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,17 +422,34 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
               📋 Danh sách Giáo viên {selectedGrade}
             </h2>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-              {filteredTeachers.map(t => (
-                <div key={t.id} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs">
-                  <div>
-                    <div className="font-bold text-slate-800">{t.fullName}</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{t.email}</div>
+              {filteredTeachers.map(t => {
+                const isSelected = randomTeacher?.id === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => handleSelectTeacherManual(t)}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer active:scale-[0.99] group ${
+                      isSelected
+                        ? 'border-brand-primary bg-brand-primary-light/10 shadow-sm ring-1 ring-brand-primary'
+                        : 'border-slate-100 bg-slate-50/50 hover:bg-white hover:border-brand-primary/45 hover:shadow-sm'
+                    }`}
+                  >
+                    <div>
+                      <div className={`font-bold transition-colors ${isSelected ? 'text-brand-primary' : 'text-slate-800 group-hover:text-brand-primary'}`}>{t.fullName}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{t.email}</div>
+                    </div>
+                    {isSelected ? (
+                      <span className="px-2.5 py-0.5 bg-brand-primary text-white rounded-full font-black text-[9px] uppercase tracking-wider animate-pulse">
+                        👉 Đang chọn
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 border border-slate-200 rounded-full font-bold text-[9px] uppercase tracking-wider group-hover:bg-brand-primary-light group-hover:text-brand-primary group-hover:border-brand-primary-light transition-colors">
+                        Chọn
+                      </span>
+                    )}
                   </div>
-                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full font-bold text-[9px]">
-                    Đã kích hoạt
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
