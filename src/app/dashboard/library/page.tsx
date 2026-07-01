@@ -217,8 +217,14 @@ export default function EliteLibraryPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-800 leading-snug break-all">
-                    📄 {doc.fileName}
+                  <h3 className="text-sm font-bold text-slate-800 leading-snug break-all hover:text-brand-primary transition-colors">
+                    {doc.url && doc.url !== '#' ? (
+                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                        📄 {doc.fileName}
+                      </a>
+                    ) : (
+                      `📄 ${doc.fileName}`
+                    )}
                   </h3>
 
                   <div className="text-[11px] text-slate-500 font-medium pt-1">
@@ -237,14 +243,19 @@ export default function EliteLibraryPage() {
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 bg-brand-primary-light/40 hover:bg-brand-primary-light/60 text-brand-primary border border-brand-primary-light rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
+                      className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
                     >
-                      📥 Mở xem giáo án mẫu
+                      📥 Xem & Tải giáo án
                     </a>
                   ) : (
-                    <span className="text-[10px] text-slate-400 font-bold bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                      Chỉ xem tại Drive gốc
-                    </span>
+                    <a
+                      href="https://drive.google.com/drive/folders/17CFaCERq_F-EMxyi7oD6BFvqqxe57356"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
+                    >
+                      📁 Mở xem tại Drive trường
+                    </a>
                   )}
                 </div>
 
