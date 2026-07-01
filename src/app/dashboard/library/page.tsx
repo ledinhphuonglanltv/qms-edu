@@ -207,7 +207,7 @@ export default function EliteLibraryPage() {
             {filteredDocs.map((doc) => (
               <div key={doc.id} className="p-6 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
                 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-black text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-2 py-0.5 rounded-full uppercase">
                       {doc.grade} • Tuần {doc.weekNumber}
@@ -217,18 +217,55 @@ export default function EliteLibraryPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-800 leading-snug break-all hover:text-brand-primary transition-colors">
-                    {doc.url && doc.url !== '#' ? (
-                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        📄 {doc.fileName}
-                      </a>
-                    ) : (
-                      `📄 ${doc.fileName}`
-                    )}
-                  </h3>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    Tác giả: <strong className="text-slate-800">{doc.teacherName}</strong>
+                  </div>
 
-                  <div className="text-[11px] text-slate-500 font-medium pt-1">
-                    Tác giả: <strong>{doc.teacherName}</strong>
+                  {/* Danh sách các file được vinh danh (Hỗ trợ đa file và bảo mật link) */}
+                  <div className="space-y-2 pt-1">
+                    {(() => {
+                      const names = doc.fileName ? doc.fileName.split(' | ') : [];
+                      const urls = doc.url ? doc.url.split(' | ') : [];
+                      
+                      return names.map((name, index) => {
+                        const fileUrl = urls[index] || '#';
+                        const hasRealUrl = fileUrl && fileUrl !== '#';
+
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 text-xs hover:border-brand-primary/20 transition-all">
+                            <span className="truncate max-w-[240px] font-bold text-slate-700">
+                              {hasRealUrl ? (
+                                <a 
+                                  href={fileUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-brand-primary hover:underline"
+                                >
+                                  📄 {name}
+                                </a>
+                              ) : (
+                                <span className="text-slate-500">📄 {name}</span>
+                              )}
+                            </span>
+
+                            {hasRealUrl ? (
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-black cursor-pointer transition-colors"
+                              >
+                                📥 Tải về
+                              </a>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 font-bold bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1">
+                                🔒 Chờ đồng bộ Drive
+                              </span>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
 
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600 leading-relaxed italic">
@@ -236,27 +273,11 @@ export default function EliteLibraryPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
-                  <span className="text-[9px] text-slate-400 font-medium">Bình chọn vào: {new Date(doc.selectedAt).toLocaleDateString('vi-VN')}</span>
-                  {doc.url && doc.url !== '#' ? (
-                    <a
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-250 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
-                    >
-                      📥 Xem & Tải giáo án
-                    </a>
-                  ) : (
-                    <a
-                      href="https://drive.google.com/drive/folders/17CFaCERq_F-EMxyi7oD6BFvqqxe57356"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors btn-interactive"
-                    >
-                      📁 Mở xem tại Drive trường
-                    </a>
-                  )}
+                <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-medium">
+                  <span>Bình chọn vào: {new Date(doc.selectedAt).toLocaleDateString('vi-VN')}</span>
+                  <span className="font-bold text-amber-600 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    🏆 Học liệu vinh danh
+                  </span>
                 </div>
 
               </div>

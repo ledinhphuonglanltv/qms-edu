@@ -242,6 +242,22 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     e.preventDefault();
     if (!randomTeacher) return;
 
+    // Chặn bảo mật: Không cho vinh danh học liệu vàng nếu chưa quét xong Drive hoặc chưa chọn file
+    if (isElite) {
+      if (loadingFiles) {
+        showToast('Vui lòng đợi Google Drive quét xong tệp tin trước khi lưu vinh danh!', 'warning');
+        return;
+      }
+      if (scannedFiles.length === 0) {
+        showToast('Không thể vinh danh do giáo viên này chưa nộp học liệu nào!', 'error');
+        return;
+      }
+      if (selectedEliteFiles.length === 0) {
+        showToast('Khầy vui lòng tích chọn nút 🏆 Vinh danh bên cạnh file giáo án ở danh sách phía trên trước khi Lưu!', 'warning');
+        return;
+      }
+    }
+
     setIsSaving(true);
     const evaluationWeek = selectedWeek === 'all' ? currentWeek : selectedWeek;
     
