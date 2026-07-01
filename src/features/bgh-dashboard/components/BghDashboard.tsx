@@ -38,8 +38,8 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
   const currentWeek = getCurrentWeek(schoolStartDate);
   const totalWeeks = 35;
   
-  const [selectedWeek, setSelectedWeek] = useState<number>(currentWeek);
-  const [selectedGrade, setSelectedGrade] = useState<string>('Khối 1');
+  const [selectedWeek, setSelectedWeek] = useState<number | 'all'>(currentWeek);
+  const [selectedGrade, setSelectedGrade] = useState<string>('all');
   const [randomTeacher, setRandomTeacher] = useState<TeacherMockData | null>(null);
   const [isSampling, setIsSampling] = useState(false);
   const [scannedFiles, setScannedFiles] = useState<TeacherFile[]>([]);
@@ -110,14 +110,17 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     }
   }, [user.id, isReal]);
 
-  const filteredTeachers = teachersList.filter(t => t.grade === selectedGrade);
+  const filteredTeachers = selectedGrade === 'all'
+    ? teachersList
+    : teachersList.filter(t => t.grade === selectedGrade);
 
-  // Gọi API quét file thật của Giáo viên được rút thăm ngẫu nhiên
+  // Gọi API quét file thật của Giáo viên được rút thăm ngẫu nhiên hoặc chọn thủ công
   const loadTeacherRealFiles = async (teacherId: string) => {
     setLoadingFiles(true);
     setScannedFiles([]);
     try {
-      const res = await fetch(`/api/submissions/scan?teacherId=${teacherId}&weekNumber=${selectedWeek}`);
+      const queryWeek = selectedWeek === 'all' ? currentWeek : selectedWeek;
+      const res = await fetch(`/api/submissions/scan?teacherId=${teacherId}&weekNumber=${queryWeek}`);
       const result = await res.json();
       if (res.ok) {
         setScannedFiles(result.files.map((f: any) => ({
@@ -203,14 +206,16 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     if (isReal) {
       await loadTeacherRealFiles(teacher.id);
     } else {
-      // Mock files ở demo mode
+      const weekLabel = selectedWeek === 'all' ? currentWeek : selectedWeek;
+      const weekStr = String(weekLabel).padStart(2, '0');
       setScannedFiles([
-        { name: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, url: '#', uploadedAt: '2026-09-12' },
-        { name: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, url: '#', uploadedAt: '2026-09-12' },
+        { name: `KHBD_Tuan${weekStr}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHBD, url: '#', uploadedAt: '2026-09-12' },
+        { name: `KHGD_Tuan${weekStr}_${teacher.fullName.replace(/\s+/g, '')}.docx`, type: FILE_TYPES.KHGD, url: '#', uploadedAt: '2026-09-12' },
       ]);
     }
     
-    showToast(`Đã chọn Thầy/Cô ${teacher.fullName} để đánh giá chất lượng Tuần ${selectedWeek}.`, 'info');
+    const weekDisplay = selectedWeek === 'all' ? `Tất cả các tuần (đánh giá tuần ${currentWeek})` : `Tuần ${selectedWeek}`;
+    showToast(`Đã chọn Thầy/Cô ${teacher.fullName} để đánh giá chất lượng ${weekDisplay}.`, 'info');
   };
 
   // Lưu nhận xét thi đua thật vào database
@@ -219,6 +224,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     if (!randomTeacher) return;
 
     setIsSaving(true);
+    const evaluationWeek = selectedWeek === 'all' ? currentWeek : selectedWeek;
     
     if (isReal && user.id) {
       try {
@@ -229,7 +235,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           },
           body: JSON.stringify({
             teacherId: randomTeacher.id,
-            weekNumber: selectedWeek,
+            weekNumber: evaluationWeek,
             schoolYear: '2026-2027',
             bghRating: bghRating,
             bghFeedback: bghFeedback,
@@ -249,11 +255,11 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           const storedElites = localStorage.getItem('qms_elite_lessons') || '[]';
           const elites = JSON.parse(storedElites);
           const newElite = {
-            id: `${randomTeacher.id}_w${selectedWeek}`,
+            id: `${randomTeacher.id}_w${evaluationWeek}`,
             teacherName: randomTeacher.fullName,
             grade: randomTeacher.grade,
-            weekNumber: selectedWeek,
-            title: `Kế hoạch bài dạy Tuần ${selectedWeek} - môn Toán/Tiếng Việt`,
+            weekNumber: evaluationWeek,
+            title: `Kế hoạch bài dạy Tuần ${evaluationWeek} - môn Toán/Tiếng Việt`,
             fileUrl: scannedFiles.find(f => f.type === FILE_TYPES.KHBD)?.url || '#',
             rating: bghRating,
             feedback: bghFeedback
@@ -265,7 +271,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
         }
 
         setSaveSuccess(true);
-        showToast(`Đã lưu kết quả thanh tra chất lượng và đánh giá thi đua cho Thầy/Cô ${randomTeacher.fullName} thành công!`, 'success');
+        showToast(`Đã lưu kết quả thanh tra chất lượng và đánh giá thi đua cho Thầy/Cô ${randomTeacher.fullName} thành công! (Tuần ${evaluationWeek})`, 'success');
         setRandomTeacher(null);
       } catch (err: any) {
         console.error('Lỗi lưu đánh giá BGH:', err);
@@ -283,11 +289,11 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           const storedElites = localStorage.getItem('qms_elite_lessons') || '[]';
           const elites = JSON.parse(storedElites);
           const newElite = {
-            id: `${randomTeacher.id}_w${selectedWeek}`,
+            id: `${randomTeacher.id}_w${evaluationWeek}`,
             teacherName: randomTeacher.fullName,
             grade: randomTeacher.grade,
-            weekNumber: selectedWeek,
-            title: `Kế hoạch bài dạy Tuần ${selectedWeek} - môn học mẫu mực`,
+            weekNumber: evaluationWeek,
+            title: `Kế hoạch bài dạy Tuần ${evaluationWeek} - môn học mẫu mực`,
             fileUrl: '#',
             rating: bghRating,
             feedback: bghFeedback
@@ -298,7 +304,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           }
         }
         
-        showToast(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công!`, 'success');
+        showToast(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công! (Tuần ${evaluationWeek})`, 'success');
         setRandomTeacher(null);
       }, 1000);
     }
@@ -354,9 +360,15 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
             <label className="text-xs font-bold text-slate-500 uppercase">Chọn Tuần học:</label>
             <select
               value={selectedWeek}
-              onChange={(e) => setSelectedWeek(Number(e.target.value))}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedWeek(val === 'all' ? 'all' : Number(val));
+                setRandomTeacher(null);
+                setSaveSuccess(false);
+              }}
               className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
             >
+              <option value="all">Tất cả các tuần</option>
               {Array.from({ length: totalWeeks }, (_, i) => i + 1).map(w => (
                 <option key={w} value={w}>Tuần {w}</option>
               ))}
@@ -374,6 +386,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
               }}
               className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-brand-primary cursor-pointer shadow-sm"
             >
+              <option value="all">Tất cả các khối</option>
               <option value="Khối 1">Khối 1</option>
               <option value="Khối 2">Khối 2</option>
               <option value="Khối 3">Khối 3</option>
@@ -404,7 +417,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
               🎯 Cơ Chế Chọn Mẫu Ngẫu Nhiên
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              BGH không duyệt tuần tự. Hệ thống tự động chọn ngẫu nhiên một giáo viên thuộc Khối đã nộp đầy đủ hồ sơ ở Tuần {selectedWeek} để thanh tra chất lượng.
+              BGH không duyệt tuần tự. Hệ thống tự động chọn ngẫu nhiên một giáo viên thuộc Khối đã nộp đầy đủ hồ sơ ở Tuần {selectedWeek === 'all' ? currentWeek : selectedWeek} để thanh tra chất lượng.
             </p>
 
             <button
@@ -419,7 +432,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           {/* Bảng Danh Sách Giáo Viên Trong Khối */}
           <div className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white shadow-sm space-y-4">
             <h2 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2.5">
-              📋 Danh sách Giáo viên {selectedGrade}
+              📋 Danh sách Giáo viên {selectedGrade === 'all' ? 'Tất cả các khối' : selectedGrade}
             </h2>
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               {filteredTeachers.map(t => {
@@ -481,7 +494,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
 
                 <div className="text-left sm:text-right">
                   <div className="text-[10px] text-slate-400 font-bold uppercase">Tuần thanh tra</div>
-                  <div className="text-base font-black text-brand-primary">Tuần học {selectedWeek}</div>
+                  <div className="text-base font-black text-brand-primary">Tuần học {selectedWeek === 'all' ? `${currentWeek} (Hiện tại)` : selectedWeek}</div>
                 </div>
               </div>
 
