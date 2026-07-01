@@ -11,15 +11,9 @@ interface LeadDashboardProps {
     role: string;
     grade: string;
     status: string;
+    id?: string;
   };
   onLogout: () => void;
-}
-
-interface TeacherData {
-  id: string;
-  fullName: string;
-  email: string;
-  driveFolder: string;
 }
 
 interface TeacherFileStatus {
@@ -40,6 +34,13 @@ interface DemoSubmission {
   files: TeacherFileStatus[];
 }
 
+interface TeacherData {
+  id: string;
+  fullName: string;
+  email: string;
+  driveFolder: string;
+}
+
 export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   const schoolStartDate = '2026-09-01';
   const currentWeek = getCurrentWeek(schoolStartDate);
@@ -52,7 +53,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
-  // SMTP Log để hiển thị quá trình giả lập gửi Gmail
+  // SMTP Log để hiển thị quá trình gửi Gmail
   const [smtpLog, setSmtpLog] = useState<string | null>(null);
 
   // Danh sách Giáo viên giả lập thuộc Khối (Grade) của Khối Trưởng
@@ -72,8 +73,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
     ];
     setTeachers(mockTeachers);
 
-    // 2. Khởi tạo dữ liệu nộp bài demo của các giáo viên trong khối ở tuần đã chọn
-    // (Lưu vào localStorage để khi test thay đổi trạng thái sẽ lưu trữ lại)
+    // 2. Khởi tạo dữ liệu nộp bài demo của các giáo viên
     const storageKey = `qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`;
     const stored = localStorage.getItem(storageKey);
     if (stored) {
@@ -98,9 +98,9 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           submittedAt: '2026-09-11T16:45:00Z',
           teacherNote: 'Nộp đủ 3 file',
           leadStatus: 'verified',
-          leadNote: 'Đã duyệt nộp đủ.',
+          leadNote: 'Đã duyệt báo cáo đầy đủ, đúng hạn.',
           bghRating: EVALUATION_LEVELS.TOT,
-          bghFeedback: 'Đạt yêu cầu tốt.',
+          bghFeedback: 'Thực hiện tốt.',
           files: [
             { fileName: `KHBD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHBD, uploadedAt: '2026-09-11', url: '#' },
             { fileName: `KHGD_Tuan${String(selectedWeek).padStart(2, '0')}_LeThiBinh.docx`, fileType: FILE_TYPES.KHGD, uploadedAt: '2026-09-11', url: '#' },
@@ -115,12 +115,12 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           leadNote: null,
           bghRating: null,
           bghFeedback: null,
-          files: [] // Chưa nộp
+          files: []
         },
         't4': {
           teacherId: 't4',
-          submittedAt: '2026-09-12T10:00:00Z',
-          teacherNote: 'Nộp báo cáo tuần mới',
+          submittedAt: '2026-09-12T09:00:00Z',
+          teacherNote: 'Gửi tổ chuyên môn kiểm tra',
           leadStatus: 'pending',
           leadNote: null,
           bghRating: null,
@@ -137,22 +137,18 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
     }
   }, [selectedWeek, user.grade]);
 
-  // Quét tự động Google Drive (Auto-Scan) giả lập
-  const handleAutoScan = (teacherId: string, teacherName: string) => {
+  // Nút Quét Google Drive (Drive API Scan Simulation)
+  const handleScanDrive = (teacherId: string, teacherName: string) => {
     setScanningId(teacherId);
     
-    // Giả lập backend gọi Google Drive API v3 để quét danh sách file trong folder
     setTimeout(() => {
       setScanningId(null);
-      
-      const cleanName = teacherName.replace(/\s+/g, '');
       const currentSub = submissions[teacherId];
+      const cleanName = teacherName.replace(/\s+/g, '');
       
-      // Giả lập quét phát hiện các file thực tế trên Drive
-      // Ví dụ: Giáo viên t1 nộp thiếu file DCTD, quét Drive phát hiện họ vừa tải lên thêm 1 file
       let updatedFiles = [...(currentSub?.files || [])];
       
-      // Nếu là An (t1), giả định quét Drive phát hiện họ vừa bổ sung đủ DCTD
+      // Giả lập phát hiện file DCTD nếu là An (t1) nộp thiếu
       if (teacherId === 't1' && !updatedFiles.some(f => f.fileType === FILE_TYPES.DCTD)) {
         updatedFiles.push({
           fileName: `DCTD_Tuan${String(selectedWeek).padStart(2, '0')}_${cleanName}.docx`,
@@ -161,7 +157,6 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           url: '#',
         });
       }
-      // Nếu là Sơn (t3) chưa nộp gì, giả định quét Drive vẫn thấy 0 file
       
       const newSub: DemoSubmission = {
         ...currentSub,
@@ -227,11 +222,11 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
         const { error } = await supabase.from('submissions').upsert({
           teacher_id: selectedTeacher.id,
           week_number: selectedWeek,
-          school_year: '2026-2027', // Cần đồng bộ theo năm học thực tế
+          school_year: '2026-2027',
           lead_status: status,
           lead_note: verificationNote,
           lead_verified_at: new Date().toISOString(),
-          lead_id: (user as any).id, // ID của Khối trưởng
+          lead_id: (user as any).id,
         });
 
         if (error) throw error;
@@ -300,287 +295,236 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   const dateRange = getWeekDateRange(selectedWeek, schoolStartDate);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* HEADER */}
-      <header className="relative z-10 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+      {/* HEADER - OLM Style */}
+      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-orange-500 p-0.5 shadow-md">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-slate-950 text-xs font-black text-orange-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
               Q
             </div>
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight">QMS-EDU</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Hệ thống chất lượng</p>
+            <div className="text-sm font-black text-white leading-none">QMS-EDU</div>
+            <div className="text-[10px] text-indigo-200 uppercase tracking-widest font-bold mt-0.5">Khối trưởng Workspace</div>
           </div>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
-            <div className="text-xs font-bold text-slate-200">Khối trưởng: {user.fullName}</div>
-            <div className="text-[10px] text-orange-500 font-semibold">Phụ trách: {user.grade}</div>
+            <div className="text-xs font-bold text-white">Khối trưởng: {user.fullName}</div>
+            <div className="text-[10px] text-indigo-200 font-bold bg-indigo-800 px-2.5 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
+              Quản lý: {user.grade}
+            </div>
           </div>
           <button
             onClick={onLogout}
-            className="px-4 py-2 border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
           >
             Đăng xuất
           </button>
         </div>
       </header>
 
-      {/* BODY CONTAINER */}
-      <div className="flex-grow flex flex-col md:flex-row">
+      {/* SUB HEADER - TAB / WEEK SELECTOR */}
+      <div className="bg-white border-b border-slate-200/80 px-6 py-3 flex flex-wrap gap-4 items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-bold text-slate-500 uppercase">Chọn Tuần kiểm duyệt:</label>
+          <select
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+            className="bg-white border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
+          >
+            {Array.from({ length: totalWeeks }, (_, i) => i + 1).map(w => (
+              <option key={w} value={w}>Tuần {w}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="text-xs font-bold text-slate-500">
+          Lịch học tuần {selectedWeek}: <span className="text-indigo-600">{formatDate(dateRange.start)}</span> đến <span className="text-indigo-600">{formatDate(dateRange.end)}</span>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-grow p-6 space-y-6 max-w-7xl w-full mx-auto">
         
-        {/* SIDEBAR CHỌN TUẦN */}
-        <aside className="w-full md:w-64 border-r border-slate-900 bg-slate-950/40 p-4 shrink-0 flex flex-col gap-3">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2">
-            Tuần kiểm duyệt
+        {/* Banner Success */}
+        {successMsg && (
+          <div className="p-4 rounded-xl border border-green-200 bg-green-50 text-sm text-green-700 font-bold animate-fade-in shadow-sm">
+            ✅ {successMsg}
           </div>
-          
-          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-y-auto max-h-[150px] md:max-h-[calc(100vh-200px)] pb-2 md:pb-0 pr-1">
-            {Array.from({ length: totalWeeks }, (_, idx) => idx + 1).map((week) => {
-              const isCurrent = week === currentWeek;
-              const isSelected = week === selectedWeek;
+        )}
+
+        {/* DANH SÁCH GIÁO VIÊN VÀ BÁO CÁO CỦA HỌ */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">
+              Theo dõi và Duyệt giáo án {user.grade} (Tuần {selectedWeek})
+            </h2>
+            <span className="text-[10px] text-slate-400 font-bold">Tổng số giáo viên: {teachers.length}</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {teachers.map((teacher) => {
+              const sub = submissions[teacher.id];
+              const isScanning = scanningId === teacher.id;
+
               return (
-                <button
-                  key={week}
-                  onClick={() => setSelectedWeek(week)}
-                  className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-xs font-medium cursor-pointer transition-all shrink-0 ${
-                    isSelected
-                      ? 'border-orange-500 bg-orange-500/10 text-orange-400 font-bold'
-                      : 'border-slate-900/40 bg-slate-900/10 hover:border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>📅</span>
-                    <span>Tuần {week}</span>
-                    {isCurrent && (
-                      <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-black text-[9px]">
-                        HIỆN TẠI
-                      </span>
+                <div key={teacher.id} className="p-5 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 shadow-sm transition-all flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
+                  
+                  {/* Cột 1: Thông tin giáo viên & Ghi chú nộp */}
+                  <div className="space-y-2 lg:max-w-sm w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">👩‍🏫</span>
+                      <div>
+                        <h3 className="font-bold text-slate-800 leading-tight">{teacher.fullName}</h3>
+                        <span className="text-[10px] text-slate-400 font-medium">{teacher.email}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 pl-7 space-y-1">
+                      <div>📁 <strong>Thư mục Drive:</strong> <code className="text-indigo-600 text-[10px]">{teacher.driveFolder}</code></div>
+                      {sub?.submittedAt ? (
+                        <div className="text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2 italic">
+                          "Gửi kèm: {sub.teacherNote || 'Không ghi chú'}"
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 italic mt-1">Chưa bấm xác nhận đã nộp trên App</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cột 2: Các file hiện có (Được quét từ Google Drive) */}
+                  <div className="flex-grow w-full lg:max-w-md">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tài liệu đã quét trên Drive</div>
+                    
+                    {!sub || sub.files.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 italic">Thư mục Drive trống. Giáo viên chưa tải tài liệu lên.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {sub.files.map((file, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 text-[11px]">
+                            <span className="text-slate-700 font-medium truncate max-w-[250px]">📄 {file.fileName}</span>
+                            <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase">{file.fileType}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </span>
-                </button>
+                  </div>
+
+                  {/* Cột 3: Trạng thái & Tác vụ kiểm duyệt */}
+                  <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-auto items-stretch lg:items-end justify-between self-stretch">
+                    
+                    {/* Badge trạng thái */}
+                    <div className="text-right">
+                      {!sub?.submittedAt ? (
+                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-slate-100 text-slate-500 border border-slate-200">Chưa nộp bài</span>
+                      ) : sub.leadStatus === 'pending' ? (
+                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-yellow-50 text-yellow-600 border border-yellow-200 animate-pulse">Chờ kiểm duyệt</span>
+                      ) : sub.leadStatus === 'incomplete' ? (
+                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-orange-50 text-orange-600 border border-orange-200">Cần bổ sung</span>
+                      ) : (
+                        <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">✓ Đã duyệt nộp đủ</span>
+                      )}
+                    </div>
+
+                    {/* Nút tác vụ */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleScanDrive(teacher.id, teacher.fullName)}
+                        disabled={isScanning}
+                        className="px-3 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                      >
+                        {isScanning ? '🔄 Đang quét...' : '🔍 Quét Drive'}
+                      </button>
+
+                      <button
+                        onClick={() => handleVerifyClick(teacher)}
+                        disabled={!sub?.submittedAt}
+                        className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-100 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                      >
+                        ⚖️ Duyệt & Gửi mail
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
               );
             })}
           </div>
-        </aside>
+        </div>
+      </main>
 
-        {/* MAIN PANEL */}
-        <main className="flex-grow p-6 lg:p-10 space-y-6">
-          
-          {successMsg && (
-            <div className="p-4 rounded-xl border border-green-500/20 bg-green-500/5 text-sm text-green-400 font-medium animate-fade-in">
-              ✅ {successMsg}
-            </div>
-          )}
+      {/* POPUP MODAL DUYỆT & NHẬN XÉT GỬI MAIL */}
+      {selectedTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-blue-600 to-orange-500"></div>
 
-          {/* TIÊU ĐỀ DASHBOARD */}
-          <div className="p-6 rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="space-y-1">
-              <div className="text-xs text-orange-400 font-bold uppercase tracking-wider">Quản lý duyệt báo cáo</div>
-              <h2 className="text-xl font-black">{user.grade} — Báo cáo Tuần {selectedWeek}</h2>
-              <p className="text-xs text-slate-400">
-                Lịch dạy: <strong>{formatDate(dateRange.start)}</strong> đến <strong>{formatDate(dateRange.end)}</strong>
-              </p>
-            </div>
-            
-            {/* Quick stats */}
-            <div className="flex gap-4 text-xs font-bold">
-              <div className="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-center">
-                <div>Đã duyệt</div>
-                <div className="text-lg mt-0.5">{Object.values(submissions).filter(s => s.leadStatus === 'verified').length}</div>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
+              ⚖️ Duyệt hồ sơ nộp Tuần {selectedWeek} - {selectedTeacher.fullName}
+            </h3>
+
+            <div className="space-y-4">
+              {/* Box Info */}
+              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1.5 text-slate-600">
+                <div>• <strong>Người nhận mail thông báo:</strong> {selectedTeacher.fullName}</div>
+                <div>• <strong>Địa chỉ Gmail gửi thật:</strong> {selectedTeacher.email}</div>
+                <div>• <strong>Tuần học kiểm duyệt:</strong> Tuần {selectedWeek}</div>
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-center">
-                <div>Chờ duyệt</div>
-                <div className="text-lg mt-0.5">{Object.values(submissions).filter(s => s.submittedAt && s.leadStatus === 'pending').length}</div>
+
+              {/* Nhận xét */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-600 uppercase">Nhận xét chuyên môn / Yêu cầu bổ sung</label>
+                <textarea
+                  rows={4}
+                  value={verificationNote}
+                  onChange={(e) => setVerificationNote(e.target.value)}
+                  placeholder="Nhập nhận xét (ví dụ: Giáo án soạn đúng chuẩn... hoặc Yêu cầu tải thêm file điều chỉnh sau tiết dạy...)"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                />
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-center">
-                <div>Chưa nộp</div>
-                <div className="text-lg mt-0.5">{Object.values(submissions).filter(s => !s.submittedAt).length}</div>
-              </div>
-            </div>
-          </div>
 
-          {/* BẢNG GIÁO VIÊN & TÌNH TRẠNG NỘP FILE */}
-          <div className="rounded-2xl border border-slate-900 bg-slate-900/10 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-900 bg-slate-900/40 text-slate-400 font-bold uppercase tracking-wider">
-                    <th className="p-4">Giáo viên</th>
-                    <th className="p-4">Tài liệu đã nộp trên Drive (Auto-Scan)</th>
-                    <th className="p-4">Ghi chú của GV</th>
-                    <th className="p-4 text-center">Trạng thái duyệt</th>
-                    <th className="p-4 text-right">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-900">
-                  {teachers.map((teacher) => {
-                    const sub = submissions[teacher.id];
-                    const hasSubmitted = !!sub?.submittedAt;
-                    
-                    // Kiểm tra xem đã đủ 3 file chưa
-                    const hasKHBD = sub?.files.some(f => f.fileType === FILE_TYPES.KHBD);
-                    const hasKHGD = sub?.files.some(f => f.fileType === FILE_TYPES.KHGD);
-                    const hasDCTD = sub?.files.some(f => f.fileType === FILE_TYPES.DCTD);
-                    const fileCount = sub?.files.length || 0;
+              {/* SMTP Logs display */}
+              {smtpLog && (
+                <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 text-[10px] font-mono text-slate-400 max-h-[120px] overflow-y-auto whitespace-pre-wrap">
+                  {smtpLog}
+                </div>
+              )}
 
-                    return (
-                      <tr key={teacher.id} className="hover:bg-slate-900/20 transition-colors">
-                        {/* 1. Giáo viên */}
-                        <td className="p-4">
-                          <div className="font-bold text-slate-200">{teacher.fullName}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{teacher.email}</div>
-                        </td>
-                        
-                        {/* 2. Tài liệu quét trên Drive */}
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-1.5">
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${hasKHBD ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                              KHBD {hasKHBD ? '✓' : '✖'}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${hasKHGD ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                              KHGD {hasKHGD ? '✓' : '✖'}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${hasDCTD ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                              DCTD {hasDCTD ? '✓' : '✖'}
-                            </span>
-                          </div>
-                          {fileCount > 0 && (
-                            <div className="text-[9px] text-slate-500 mt-1.5 italic">
-                              Tổng cộng: {fileCount} file trong folder
-                            </div>
-                          )}
-                        </td>
-
-                        {/* 3. Ghi chú giáo viên */}
-                        <td className="p-4 max-w-xs truncate text-slate-400">
-                          {sub?.teacherNote || <span className="text-slate-600 font-medium">Không có ghi chú</span>}
-                        </td>
-
-                        {/* 4. Trạng thái */}
-                        <td className="p-4 text-center">
-                          {!hasSubmitted ? (
-                            <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 font-bold">
-                              Chưa nộp
-                            </span>
-                          ) : sub.leadStatus === 'pending' ? (
-                            <span className="px-2 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-bold">
-                              Chờ duyệt
-                            </span>
-                          ) : sub.leadStatus === 'incomplete' ? (
-                            <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-bold">
-                              Nộp thiếu/Sửa
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-bold">
-                              Đã xác nhận
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 5. Hành động */}
-                        <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
-                          {/* Button Quét Drive */}
-                          <button
-                            onClick={() => handleAutoScan(teacher.id, teacher.fullName)}
-                            disabled={scanningId !== null}
-                            className="px-2.5 py-1.5 border border-slate-800 bg-slate-950 text-[10px] font-bold rounded-lg hover:border-slate-700 transition-all cursor-pointer disabled:opacity-50"
-                          >
-                            {scanningId === teacher.id ? '⏳ Đang quét...' : '🔍 Quét Drive'}
-                          </button>
-                          
-                          {/* Button Duyệt */}
-                          <button
-                            onClick={() => handleVerifyClick(teacher)}
-                            disabled={!hasSubmitted}
-                            className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-900 disabled:text-slate-700 text-[10px] font-bold rounded-lg text-white transition-all cursor-pointer disabled:border-transparent border border-orange-600"
-                          >
-                            Duyệt
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* MODAL DUYỆT TÀI LIỆU (GLASSMORPHISM POPUP) */}
-          {selectedTeacher && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
-              <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-6 relative overflow-hidden shadow-2xl">
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-600 to-orange-500"></div>
+              {/* Buttons */}
+              <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => setSelectedTeacher(null)}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                >
+                  Hủy bỏ
+                </button>
                 
-                <div>
-                  <h3 className="text-base font-bold text-slate-200">
-                    Kiểm duyệt tài liệu — {selectedTeacher.fullName}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Trạng thái thực tế: nộp {submissions[selectedTeacher.id]?.files.length || 0}/3 file yêu cầu.
-                  </p>
-                </div>
-
-                {/* Form nhập nhận xét */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-slate-400 uppercase">
-                    Ghi chú / Nhận xét của Khối trưởng
-                  </label>
-                  <textarea
-                    value={verificationNote}
-                    onChange={(e) => setVerificationNote(e.target.value)}
-                    placeholder="Nhập nhận xét hoặc chỉ ra file còn thiếu cần bổ sung..."
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-xs text-slate-200 focus:border-orange-500/50 focus:outline-none transition-all h-24"
-                  />
-                </div>
-
-                {/* Bảng log giả lập gửi SMTP */}
-                {smtpLog && (
-                  <div className="p-3 bg-black rounded-lg border border-slate-800 font-mono text-[9px] text-green-400 overflow-x-auto whitespace-pre">
-                    {smtpLog}
-                  </div>
-                )}
-
-                {/* Buttons hành động */}
-                <div className="flex justify-between items-center pt-4 border-t border-slate-800">
-                  <button
-                    onClick={() => setSelectedTeacher(null)}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 border border-slate-800 hover:bg-slate-800 rounded-xl text-xs font-semibold transition-all cursor-pointer"
-                  >
-                    Hủy
-                  </button>
-
-                  <div className="flex gap-2">
-                    {/* Báo thiếu bài */}
-                    <button
-                      onClick={() => submitVerification('incomplete')}
-                      disabled={isSubmitting}
-                      className="px-4 py-2 bg-red-950/40 hover:bg-red-950/80 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Báo thiếu bài
-                    </button>
-                    {/* Xác nhận nộp đủ */}
-                    <button
-                      onClick={() => submitVerification('verified')}
-                      disabled={isSubmitting}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      {isSubmitting ? 'Đang gửi mail...' : 'Xác nhận nộp đủ'}
-                    </button>
-                  </div>
-                </div>
-
+                <button
+                  onClick={() => submitVerification('incomplete')}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                >
+                  {isSubmitting ? 'Đang gửi...' : 'Yêu cầu Bổ sung (Mail 🔴)'}
+                </button>
+                
+                <button
+                  onClick={() => submitVerification('verified')}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
+                >
+                  {isSubmitting ? 'Đang gửi...' : 'Xác nhận Nộp đủ (Mail 🟢)'}
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-        </main>
-      </div>
     </div>
   );
 }

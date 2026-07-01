@@ -46,7 +46,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [actionLoading, setActionLoading] = useState<string | null>(null); // Lưu ID user đang được xử lý
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Load danh sách thành viên và cấu hình
   const loadData = async () => {
@@ -119,7 +119,6 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
       const result = await response.json();
       if (response.ok) {
-        // Cập nhật state list
         setProfiles(prev =>
           prev.map(p => (p.id === userId ? { ...p, ...result.data } : p))
         );
@@ -184,7 +183,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
     bgh: profiles.filter(p => p.role === 'bgh').length,
   };
 
-  // Lọc danh sách thành viên theo từ khóa tìm kiếm và các bộ lọc
+  // Lọc danh sách thành viên
   const filteredProfiles = profiles.filter(p => {
     const matchesSearch =
       p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,47 +196,47 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans">
       
-      {/* HEADER */}
-      <header className="relative z-10 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+      {/* HEADER: OLM Style - Indigo Background */}
+      <header className="relative z-10 bg-indigo-700 px-6 py-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-orange-500 p-0.5 shadow-md shadow-blue-500/10">
-            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-slate-950 text-xs font-black text-orange-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
+            <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-blue-600 to-orange-500 text-xs font-black text-white">
               Q
             </div>
           </div>
           <div>
-            <div className="text-sm font-black tracking-wider text-slate-200">QMS-EDU ADMIN</div>
-            <div className="text-[10px] text-slate-500 font-medium">Bảng điều khiển quản trị hệ thống</div>
+            <div className="text-sm font-black tracking-wider text-white">QMS-EDU ADMIN</div>
+            <div className="text-[10px] text-indigo-200 font-medium">Bảng điều khiển quản trị hệ thống</div>
           </div>
         </div>
 
         {/* User Info & Actions */}
         <div className="flex items-center gap-4">
           <div className="hidden md:block text-right">
-            <div className="text-xs font-bold text-slate-300">{user.fullName}</div>
-            <div className="text-[10px] text-orange-400 font-bold bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-full inline-block mt-0.5">
+            <div className="text-xs font-bold text-white">{user.fullName}</div>
+            <div className="text-[10px] text-white font-bold bg-orange-500 px-2 py-0.5 rounded-full inline-block mt-0.5 shadow-sm">
               Super Admin
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-200 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500 bg-indigo-800/40 hover:bg-indigo-800 active:scale-[0.98] transition-all px-3 py-1.5 text-xs font-bold text-indigo-100 hover:text-white cursor-pointer"
           >
             Đăng xuất
           </button>
         </div>
       </header>
 
-      {/* SUB HEADER - TAB SELECTOR */}
-      <div className="bg-slate-900/30 border-b border-slate-900/60 px-6 py-1 flex gap-4">
+      {/* SUB HEADER - TAB SELECTOR: White background, bottom border */}
+      <div className="bg-white border-b border-slate-200/80 px-6 py-1 flex gap-4 shadow-sm">
         <button
           onClick={() => setActiveTab('members')}
           className={`px-4 py-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === 'members'
               ? 'border-orange-500 text-orange-500'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           👥 Quản lý Thành viên
@@ -247,7 +246,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           className={`px-4 py-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
             activeTab === 'config'
               ? 'border-orange-500 text-orange-500'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
           }`}
         >
           ⚙️ Cấu hình Hệ thống
@@ -257,28 +256,28 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
       {/* MAIN CONTENT */}
       <main className="flex-grow p-6 space-y-6 max-w-7xl w-full mx-auto">
         
-        {/* STATS OVERVIEW CARDS */}
+        {/* STATS OVERVIEW CARDS: OLM Light style */}
         {activeTab === 'members' && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl border border-slate-900 bg-slate-900/20 backdrop-blur-sm">
+            <div className="p-4 rounded-xl border border-slate-200/60 bg-white shadow-sm">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng thành viên</div>
-              <div className="text-2xl font-black mt-1 text-slate-100">{stats.total}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Tài khoản Google đã kết nối</div>
+              <div className="text-2xl font-black mt-1 text-slate-900">{stats.total}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Tài khoản Google kết nối</div>
             </div>
-            <div className="p-4 rounded-xl border border-orange-500/20 bg-orange-500/5 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 h-10 w-10 bg-orange-500/10 rounded-full blur-md"></div>
-              <div className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Chờ phê duyệt</div>
-              <div className="text-2xl font-black mt-1 text-orange-400">{stats.pending}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Yêu cầu cần duyệt phân vai trò</div>
+            <div className="p-4 rounded-xl border border-orange-200 bg-orange-50/50 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 h-10 w-10 bg-orange-500/5 rounded-full blur-md"></div>
+              <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Chờ phê duyệt</div>
+              <div className="text-2xl font-black mt-1 text-orange-600">{stats.pending}</div>
+              <div className="text-[10px] text-orange-500 mt-0.5">Cần duyệt phân vai trò</div>
             </div>
-            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-sm">
-              <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Đã kích hoạt</div>
-              <div className="text-2xl font-black mt-1 text-emerald-400">{stats.approved}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Giáo viên / CBQL đang hoạt động</div>
+            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
+              <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Đã kích hoạt</div>
+              <div className="text-2xl font-black mt-1 text-emerald-600">{stats.approved}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Thành viên đang hoạt động</div>
             </div>
-            <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 backdrop-blur-sm">
-              <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Cơ cấu vai trò</div>
-              <div className="text-xs font-semibold mt-2.5 text-slate-300 flex items-center justify-between gap-1">
+            <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 shadow-sm">
+              <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Cơ cấu vai trò</div>
+              <div className="text-xs font-bold mt-2.5 text-slate-700 flex items-center justify-between gap-1">
                 <span>GV: {stats.teachers}</span>
                 <span>•</span>
                 <span>Khối Trưởng: {stats.leads}</span>
@@ -291,10 +290,10 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
         {/* TAB 1: MEMBERS MANAGEMENT */}
         {activeTab === 'members' && (
-          <div className="border border-slate-900 bg-slate-900/10 backdrop-blur-sm rounded-xl overflow-hidden">
+          <div className="border border-slate-200/80 bg-white rounded-xl shadow-sm overflow-hidden animate-fade-in">
             
             {/* Search & Filters */}
-            <div className="p-4 border-b border-slate-900 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-50/50">
               
               {/* Search Bar */}
               <div className="relative w-full md:max-w-sm">
@@ -303,7 +302,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                   placeholder="Tìm thành viên (Tên, Email)..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
                 />
               </div>
 
@@ -312,7 +311,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <select
                   value={roleFilter}
                   onChange={e => setRoleFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-300 cursor-pointer"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-indigo-500 shadow-sm"
                 >
                   <option value="all">Tất cả vai trò</option>
                   <option value="teacher">Giáo viên</option>
@@ -324,7 +323,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-300 cursor-pointer"
+                  className="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none focus:border-indigo-500 shadow-sm"
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="pending">Chờ phê duyệt</option>
@@ -334,7 +333,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
                 <button
                   onClick={loadData}
-                  className="p-2 border border-slate-800 bg-slate-950 rounded-lg hover:bg-slate-900 active:scale-[0.98] transition-all cursor-pointer text-xs"
+                  className="p-2 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all cursor-pointer text-xs shadow-sm"
                   title="Tải lại dữ liệu"
                 >
                   🔄
@@ -346,7 +345,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-900/40 text-slate-400 font-bold border-b border-slate-900">
+                  <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                     <th className="p-4">Họ và Tên / Email</th>
                     <th className="p-4">Vai trò (Role)</th>
                     <th className="p-4">Khối</th>
@@ -354,19 +353,19 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                     <th className="p-4 text-right">Hành động</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-900/60">
+                <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-slate-500">
+                      <td colSpan={5} className="p-12 text-center text-slate-400">
                         <div className="flex flex-col items-center gap-2">
                           <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></div>
-                          <span>Đang tải danh sách thành viên...</span>
+                          <span className="font-semibold">Đang tải danh sách thành viên...</span>
                         </div>
                       </td>
                     </tr>
                   ) : filteredProfiles.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-12 text-center text-slate-500">
+                      <td colSpan={5} className="p-12 text-center text-slate-500 font-medium">
                         Không tìm thấy thành viên nào khớp bộ lọc.
                       </td>
                     </tr>
@@ -375,12 +374,12 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                       const isProcessing = actionLoading === profile.id;
                       
                       return (
-                        <tr key={profile.id} className="hover:bg-slate-900/20 transition-colors">
+                        <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors">
                           
                           {/* Name & Email */}
                           <td className="p-4">
-                            <div className="font-bold text-slate-200">{profile.full_name || '(Chưa khai báo)'}</div>
-                            <div className="text-[10px] text-slate-500 mt-0.5">{profile.email}</div>
+                            <div className="font-bold text-slate-800">{profile.full_name || '(Chưa khai báo)'}</div>
+                            <div className="text-[10px] text-slate-500 font-medium mt-0.5">{profile.email}</div>
                           </td>
 
                           {/* Role selector */}
@@ -389,7 +388,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                               value={profile.role}
                               disabled={isProcessing}
                               onChange={e => handleUpdateUser(profile.id, { role: e.target.value as UserRole })}
-                              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] font-semibold text-slate-300 cursor-pointer disabled:opacity-50"
+                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-indigo-500"
                             >
                               <option value="teacher">👨‍🏫 Giáo viên</option>
                               <option value="lead">🧑‍💼 Khối trưởng</option>
@@ -404,7 +403,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                               value={profile.grade || ''}
                               disabled={isProcessing}
                               onChange={e => handleUpdateUser(profile.id, { grade: e.target.value })}
-                              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] font-semibold text-slate-300 cursor-pointer disabled:opacity-50"
+                              className="bg-white border border-slate-200 rounded px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer disabled:opacity-50 focus:outline-none focus:border-indigo-500"
                             >
                               <option value="">Không phân khối</option>
                               {GRADES.map(g => (
@@ -415,12 +414,12 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
                           {/* Status Badge */}
                           <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold ${
                               profile.status === 'approved'
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
                                 : profile.status === 'rejected'
-                                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                : 'bg-orange-500/10 text-orange-400 border border-orange-500/20 animate-pulse'
+                                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                : 'bg-orange-50 text-orange-600 border border-orange-200'
                             }`}>
                               {profile.status === 'approved' && 'Đã duyệt'}
                               {profile.status === 'rejected' && 'Từ chối'}
@@ -435,7 +434,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                                 <button
                                   onClick={() => handleUpdateUser(profile.id, { status: 'approved' })}
                                   disabled={isProcessing}
-                                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded text-[10px] font-bold cursor-pointer active:scale-95 transition-all"
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
                                 >
                                   Duyệt
                                 </button>
@@ -444,7 +443,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
                                 <button
                                   onClick={() => handleUpdateUser(profile.id, { status: 'rejected' })}
                                   disabled={isProcessing}
-                                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 rounded text-[10px] font-bold cursor-pointer active:scale-95 transition-all"
+                                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 disabled:opacity-50 text-slate-600 rounded-lg text-[10px] font-bold cursor-pointer active:scale-95 transition-all shadow-sm"
                                 >
                                   Từ chối
                                 </button>
@@ -463,55 +462,55 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
 
         {/* TAB 2: SYSTEM CONFIGURATION */}
         {activeTab === 'config' && (
-          <div className="border border-slate-900 bg-slate-900/10 backdrop-blur-sm rounded-xl p-6 max-w-2xl mx-auto">
-            <h2 className="text-base font-bold text-slate-200 mb-6 flex items-center gap-2">
-              <span>⚙️</span> Cấu hình Năm học & Cổng Google Drive
+          <div className="border border-slate-200 bg-white rounded-xl p-6 max-w-2xl mx-auto shadow-sm animate-fade-in">
+            <h2 className="text-sm font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <span className="text-orange-500 text-base">⚙️</span> Cấu hình Năm học & Cổng Google Drive
             </h2>
 
-            <form onSubmit={handleSaveConfig} className="space-y-4">
+            <form onSubmit={handleSaveConfig} className="space-y-5">
               
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5">Năm học</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Năm học</label>
                 <input
                   type="text"
                   required
                   placeholder="Ví dụ: 2026-2027"
                   value={config.school_year}
                   onChange={e => setConfig(prev => ({ ...prev, school_year: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-orange-500 transition-colors"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Dùng để định danh cấu trúc năm nộp tài liệu.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Dùng để định danh cấu trúc năm nộp tài liệu.</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5">Ngày bắt đầu năm học (Khai giảng)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Ngày bắt đầu năm học (Khai giảng)</label>
                 <input
                   type="date"
                   required
                   value={config.start_date}
                   onChange={e => setConfig(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-orange-500 transition-colors"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Hệ thống dùng ngày này để tự động tính toán tuần học hiện tại (Tuần 1, Tuần 2,...).</p>
+                <p className="text-[10px] text-slate-400 mt-1">Hệ thống dùng ngày này để tự động tính toán tuần học hiện tại (Tuần 1, Tuần 2,...).</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5">Mã Thư mục Google Drive cha (Root Folder ID)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Mã Thư mục Google Drive cha (Root Folder ID)</label>
                 <input
                   type="text"
                   placeholder="Mã ID chuỗi ký tự trên URL của thư mục Google Drive"
                   value={config.google_drive_root_folder_id}
                   onChange={e => setConfig(prev => ({ ...prev, google_drive_root_folder_id: e.target.value }))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-orange-500 transition-colors"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors shadow-sm"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Thư mục Google Drive mà nhà trường sở hữu để chứa các tệp nộp bài.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Thư mục Google Drive mà nhà trường sở hữu để chứa các tệp nộp bài.</p>
               </div>
 
-              <div className="pt-4 border-t border-slate-900/60 flex justify-end">
+              <div className="pt-4 border-t border-slate-100 flex justify-end">
                 <button
                   type="submit"
                   disabled={savingConfig}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-lg text-xs font-bold cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-blue-500/10"
+                  className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-lg text-xs font-bold cursor-pointer transition-all active:scale-[0.98] shadow shadow-indigo-600/10"
                 >
                   {savingConfig ? 'Đang lưu cấu hình...' : 'Lưu cấu hình hệ thống'}
                 </button>
