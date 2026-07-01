@@ -216,29 +216,29 @@ export default function DashboardPage() {
     };
 
     return (
-      <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
+      <div className="flex flex-col min-h-screen bg-slate-50 text-slate-800 font-sans relative overflow-hidden">
         {/* Các chấm sáng mờ tạo không gian sâu (Wow Design) */}
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-950/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-400/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-400/5 rounded-full blur-[120px] pointer-events-none"></div>
 
         {/* Header trên Landing Page */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-slate-900 relative z-10 bg-slate-950/80 backdrop-blur-md">
+        <header className="relative z-10 bg-brand-primary px-6 py-4 flex items-center justify-between shadow-md">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 p-0.5 border border-slate-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white p-0.5 shadow">
               <div className="flex h-full w-full items-center justify-center rounded-[6px] bg-gradient-to-tr from-brand-primary to-brand-accent text-xs font-black text-white">
                 Q
               </div>
             </div>
             <div>
               <div className="text-sm font-black text-white leading-none">QMS-EDU</div>
-              <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">Tiểu học Lương Thế Vinh</div>
+              <div className="text-[10px] text-indigo-200 uppercase tracking-widest font-bold mt-0.5">Tiểu học Lương Thế Vinh</div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <button
               onClick={handleLogout}
-              className="px-4 py-2 border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-white rounded-xl text-xs font-bold transition-all active:scale-[0.98] cursor-pointer"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 active:scale-[0.98] transition-all px-4 py-2 text-xs font-bold text-indigo-50 hover:text-white cursor-pointer btn-interactive"
             >
               Đăng xuất
             </button>
@@ -248,14 +248,14 @@ export default function DashboardPage() {
         {/* Nội dung chính Landing */}
         <main className="flex-grow flex flex-col items-center justify-center px-4 py-12 relative z-10 max-w-5xl mx-auto w-full">
           <div className="text-center space-y-3 mb-12 animate-fade-in">
-            <span className="text-[10px] font-black text-brand-primary bg-brand-primary-light/10 border border-brand-primary-light/30 px-3 py-1 rounded-full uppercase tracking-widest">
+            <span className="text-[10px] font-black text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-3 py-1 rounded-full uppercase tracking-widest">
               Hệ thống quản lý học liệu chất lượng cao
             </span>
-            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-black text-slate-800 tracking-tight">
               Xin chào Thầy/Cô, <span className="bg-gradient-to-r from-brand-primary to-brand-accent bg-clip-text text-transparent">{user.fullName}</span>!
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto font-medium leading-relaxed">
-              Tài khoản của Thầy/Cô đã được kích hoạt thành công với vai trò <strong className="text-indigo-400 font-bold">{roleLabels[user.role] || 'Giáo viên'}</strong>. Vui lòng chọn khu vực làm việc tiếp theo:
+            <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto font-medium leading-relaxed">
+              Tài khoản của Thầy/Cô đã được kích hoạt thành công với vai trò <strong className="text-brand-primary font-bold">{roleLabels[user.role] || 'Giáo viên'}</strong>. Vui lòng chọn khu vực làm việc tiếp theo:
             </p>
           </div>
 
@@ -265,37 +265,37 @@ export default function DashboardPage() {
             {/* CARD 1: KHO HỌC LIỆU VÀNG */}
             <div
               onClick={() => window.location.href = '/dashboard/library'}
-              className="p-8 rounded-3xl border border-slate-800/80 bg-slate-900/30 hover:bg-slate-900/50 hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between min-h-[300px] shadow-2xl relative cursor-pointer group active:scale-[0.99]"
+              className="p-8 rounded-3xl border border-slate-200 bg-white hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300 flex flex-col justify-between min-h-[300px] shadow-sm relative cursor-pointer group active:scale-[0.99]"
             >
               <div className="absolute top-0 right-0 p-6 text-4xl group-hover:scale-110 transition-transform duration-300">🏆</div>
               <div className="space-y-4">
-                <div className="text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/25 px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                <div className="text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider inline-block">
                   Chia sẻ & Học hỏi
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-400 transition-colors">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-800 group-hover:text-amber-500 transition-colors">
                   Kho Học Liệu Vàng
                 </h2>
                 <p className="text-xs text-slate-400 leading-relaxed font-medium">
                   Xem và tải xuống các bài học mẫu mực, kế hoạch bài dạy chất lượng cao được Ban Giám Hiệu nhà trường tuyển chọn và vinh danh toàn trường.
                 </p>
               </div>
-              <div className="pt-6 border-t border-slate-800/60 flex items-center justify-between">
-                <span className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider">Xem học liệu mẫu mực</span>
-                <span className="h-8 w-8 rounded-full bg-slate-850 group-hover:bg-amber-500 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">➔</span>
+              <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Xem học liệu mẫu mực</span>
+                <span className="h-8 w-8 rounded-full bg-slate-100 group-hover:bg-amber-500 flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">➔</span>
               </div>
             </div>
 
             {/* CARD 2: KHU VỰC LÀM VIỆC */}
             <div
               onClick={() => setViewMode('workspace')}
-              className="p-8 rounded-3xl border border-slate-800/80 bg-slate-900/30 hover:bg-slate-900/50 hover:border-brand-primary/50 transition-all duration-300 flex flex-col justify-between min-h-[300px] shadow-2xl relative cursor-pointer group active:scale-[0.99]"
+              className="p-8 rounded-3xl border border-slate-200 bg-white hover:border-brand-primary/50 hover:shadow-xl hover:shadow-brand-primary/5 transition-all duration-300 flex flex-col justify-between min-h-[300px] shadow-sm relative cursor-pointer group active:scale-[0.99]"
             >
               <div className="absolute top-0 right-0 p-6 text-4xl group-hover:scale-110 transition-transform duration-300">💼</div>
               <div className="space-y-4">
-                <div className="text-xs font-black text-brand-primary bg-brand-primary-light/10 border border-brand-primary-light/25 px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+                <div className="text-xs font-black text-brand-primary bg-brand-primary-light/40 border border-brand-primary-light px-3 py-1 rounded-full uppercase tracking-wider inline-block">
                   Nghiệp vụ Chuyên môn
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-brand-primary transition-colors">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-800 group-hover:text-brand-primary transition-colors">
                   Khu Vực Làm Việc
                 </h2>
                 <p className="text-xs text-slate-400 leading-relaxed font-medium">
@@ -307,7 +307,7 @@ export default function DashboardPage() {
               </div>
               <div className="pt-6 border-t border-slate-800/60 flex items-center justify-between">
                 <span className="text-[10px] text-brand-primary font-bold uppercase tracking-wider">Truy cập khu vực làm việc</span>
-                <span className="h-8 w-8 rounded-full bg-slate-850 group-hover:bg-brand-primary flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">➔</span>
+                <span className="h-8 w-8 rounded-full bg-slate-100 group-hover:bg-brand-primary flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">➔</span>
               </div>
             </div>
 
@@ -315,7 +315,7 @@ export default function DashboardPage() {
         </main>
 
         {/* Footer của Landing Page */}
-        <footer className="py-6 text-center text-[10px] text-slate-650 border-t border-slate-900 mt-12 bg-slate-950/40 relative z-10">
+        <footer className="py-6 text-center text-[10px] text-slate-450 border-t border-slate-200 mt-12 bg-slate-100/60 relative z-10">
           <p>© 2026 QMS-EDU. Bản quyền thuộc về trường Tiểu học Lương Thế Vinh.</p>
         </footer>
       </div>
