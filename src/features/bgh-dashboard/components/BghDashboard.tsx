@@ -189,21 +189,26 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     
     if (isReal && user.id) {
       try {
-        // Cập nhật kết quả đánh giá thi đua vào bảng submissions của Supabase
-        const { error } = await supabase
-          .from('submissions')
-          .upsert({
-            teacher_id: randomTeacher.id,
-            week_number: selectedWeek,
-            school_year: '2026-2027',
-            bgh_rating: bghRating,
-            bgh_feedback: bghFeedback,
-            bgh_rated_at: new Date().toISOString(),
-            bgh_id: user.id,
-            is_elite: isElite
-          });
+        const response = await fetch('/api/bgh/evaluate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            teacherId: randomTeacher.id,
+            weekNumber: selectedWeek,
+            schoolYear: '2026-2027',
+            bghRating: bghRating,
+            bghFeedback: bghFeedback,
+            bghId: user.id,
+            isElite: isElite
+          }),
+        });
 
-        if (error) throw error;
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Lỗi khi lưu kết quả đánh giá.');
+        }
 
         // Nếu được tích xanh "Bài học mẫu mực" -> vinh danh vào Kho học liệu vàng
         if (isElite) {
