@@ -76,19 +76,29 @@ export default function EliteLibraryPage() {
         dbElites = data;
       }
 
+      // Hàm hỗ trợ trích xuất dữ liệu profiles an toàn (hỗ trợ cả dạng đối tượng đơn lẻ lẫn mảng)
+      const getProfileData = (profiles: any) => {
+        if (!profiles) return null;
+        if (Array.isArray(profiles)) return profiles[0] || null;
+        return profiles;
+      };
+
       // Map dữ liệu database sang cấu trúc EliteDocument
-      const dbFormattedElites: EliteDocument[] = (dbElites || []).map((sub: any) => ({
-        id: sub.id,
-        teacherId: sub.teacher_id,
-        teacherName: sub.profiles?.full_name || 'Giáo viên',
-        grade: sub.profiles?.grade || 'Khối 1',
-        weekNumber: sub.week_number,
-        fileName: sub.elite_file_name || `KHBD_Tuan${String(sub.week_number).padStart(2, '0')}_${(sub.profiles?.full_name || '').replace(/\s+/g, '')}.docx`,
-        url: sub.elite_file_url || '#',
-        rating: sub.bgh_rating || EVALUATION_LEVELS.TOT,
-        feedback: sub.bgh_feedback || 'Không có nhận xét.',
-        selectedAt: sub.bgh_rated_at || new Date().toISOString()
-      }));
+      const dbFormattedElites: EliteDocument[] = (dbElites || []).map((sub: any) => {
+        const prof = getProfileData(sub.profiles);
+        return {
+          id: sub.id,
+          teacherId: sub.teacher_id,
+          teacherName: prof?.full_name || 'Giáo viên',
+          grade: prof?.grade || 'Khối 1',
+          weekNumber: sub.week_number,
+          fileName: sub.elite_file_name || `KHBD_Tuan${String(sub.week_number).padStart(2, '0')}_${(prof?.full_name || '').replace(/\s+/g, '')}.docx`,
+          url: sub.elite_file_url || '#',
+          rating: sub.bgh_rating || EVALUATION_LEVELS.TOT,
+          feedback: sub.bgh_feedback || 'Không có nhận xét.',
+          selectedAt: sub.bgh_rated_at || new Date().toISOString()
+        };
+      });
 
       setLibrary(dbFormattedElites);
     } catch (err: any) {
