@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabaseClient';
+import { getOrCreateFolder } from '@/services/googleDriveService';
 
 // Helper kiểm tra xem user gọi API có phải là Super Admin thật sự không
 async function isSuperAdmin(req: NextRequest) {
   try {
     const supabase = getSupabaseAdmin();
-    // Lấy token auth từ header Authorization
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return false;
 
@@ -14,7 +14,6 @@ async function isSuperAdmin(req: NextRequest) {
     
     if (error || !user) return false;
 
-    // Truy vấn role từ bảng profiles
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -25,6 +24,16 @@ async function isSuperAdmin(req: NextRequest) {
   } catch (e) {
     return false;
   }
+}
+
+// Hàm chuẩn hóa tiếng Việt thành viết liền không dấu làm tên thư mục Drive
+function removeVietnameseTones(str: string): string {
+  return str
+    .normalize('NFD') // Tách các dấu ra khỏi chữ cái gốc
+    .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9]/g, ''); // Chỉ giữ lại chữ cái và số
 }
 
 /**
@@ -71,14 +80,62 @@ export async function PATCH(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     
-    // Tạo object cập nhật động dựa vào các trường truyền lên
+    // 1. Nếu có yêu cầu duyệt hoạt động thành 'approved' -> tự động tạo thư mục trên Drive
+    let finalDriveFolderId = driveFolderId;
+    
+    if (status === 'approved') {
+      // Lấy thông tin profile hiện tại để xác định tên và khối của giáo viên
+      const { data: currentProfile, error: getErr } = await supabase
+        .from('profiles')
+        .select('full_name, grade, role, drive_folder_id')
+        .eq('id', userId)
+        .single();
+
+      if (!getErr && currentProfile) {
+        const userRole = role !== undefined ? role : currentProfile.role;
+        const userGrade = grade !== undefined ? grade : currentProfile.grade;
+        const currentFolderId = currentProfile.drive_folder_id;
+
+        // Chỉ tự động tạo thư mục trên Drive đối với tài khoản Giáo viên và chưa có thư mục
+        if (userRole === 'teacher' && userGrade && !currentFolderId && !finalDriveFolderId) {
+          console.log(`[Admin API] Bắt đầu tự động tạo thư mục Drive khi duyệt giáo viên: ${currentProfile.full_name}`);
+          
+          try {
+            // Lấy cấu hình root folder
+            const { data: config } = await supabase
+              .from('system_config')
+              .select('google_root_folder_id')
+              .limit(1)
+              .maybeSingle();
+
+            const rootDriveId = config?.google_root_folder_id || '17CFaCERq_F-EMxyi7oD6BFvqqxe57356';
+            
+            // Tên thư mục khối (ví dụ: "khoi-1")
+            const gradeFolderName = userGrade.toLowerCase().replace(/\s+/g, '-');
+            const gradeFolderId = await getOrCreateFolder(gradeFolderName, rootDriveId);
+            
+            // Tên thư mục giáo viên không dấu viết liền (ví dụ: "DoThiAnhTuyen")
+            const teacherFolderName = removeVietnameseTones(currentProfile.full_name || 'GiaoVien');
+            const newFolderId = await getOrCreateFolder(teacherFolderName, gradeFolderId);
+            
+            console.log(`[Admin API] Đã tạo thành công thư mục Giáo viên ID: ${newFolderId}`);
+            finalDriveFolderId = newFolderId;
+          } catch (driveErr: any) {
+            console.error('[Admin API] Lỗi tạo thư mục tự động trên Drive:', driveErr);
+            // Vẫn tiếp tục duyệt để tránh kẹt tài khoản, chỉ ghi log cảnh báo
+          }
+        }
+      }
+    }
+
+    // 2. Tạo object cập nhật động dựa vào các trường truyền lên
     const updateData: any = {
       updated_at: new Date().toISOString()
     };
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
     if (grade !== undefined) updateData.grade = grade;
-    if (driveFolderId !== undefined) updateData.drive_folder_id = driveFolderId;
+    if (finalDriveFolderId !== undefined) updateData.drive_folder_id = finalDriveFolderId;
 
     const { data, error } = await supabase
       .from('profiles')

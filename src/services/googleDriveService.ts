@@ -27,6 +27,30 @@ const getDriveClient = () => {
 };
 
 /**
+ * Chuyển quyền sở hữu (transfer ownership) của file/folder sang tài khoản Gmail chính của Khầy
+ */
+export async function transferOwnership(fileId: string, emailAddress: string): Promise<void> {
+  const drive = getDriveClient();
+  try {
+    console.log(`[Drive API] Bắt đầu chuyển quyền sở hữu file/folder ${fileId} sang cho ${emailAddress}...`);
+    
+    // Gửi yêu cầu thay đổi chủ sở hữu
+    await drive.permissions.create({
+      fileId: fileId,
+      transferOwnership: true,
+      requestBody: {
+        role: 'owner',
+        type: 'user',
+        emailAddress: emailAddress,
+      },
+    });
+    console.log(`[Drive API] Chuyển chủ sở hữu thành công.`);
+  } catch (err: any) {
+    console.warn(`[Drive API] Lỗi/Cảnh báo chuyển quyền sở hữu cho ${fileId}:`, err.message || err);
+  }
+}
+
+/**
  * Tạo một thư mục mới trên Google Drive
  * @param folderName Tên thư mục cần tạo
  * @param parentId ID của thư mục cha
@@ -34,6 +58,7 @@ const getDriveClient = () => {
  */
 export async function createFolder(folderName: string, parentId: string): Promise<string> {
   const drive = getDriveClient();
+  const ownerEmail = process.env.SMTP_USER || 'ledinhphuonglanltv@gmail.com';
   
   try {
     const fileMetadata = {
@@ -47,11 +72,15 @@ export async function createFolder(folderName: string, parentId: string): Promis
       fields: 'id',
     });
 
-    if (!response.data.id) {
+    const folderId = response.data.id;
+    if (!folderId) {
       throw new Error('Failed to create folder - ID not returned');
     }
 
-    return response.data.id;
+    // Chuyển chủ sở hữu sang cho Khầy để bypass quota và hiển thị thư mục tự nhiên trong Drive của Khầy
+    await transferOwnership(folderId, ownerEmail);
+
+    return folderId;
   } catch (error) {
     console.error('Error creating folder on Google Drive:', error);
     throw error;
@@ -116,34 +145,49 @@ export async function uploadFile(
   parentId: string
 ): Promise<{ fileId: string; fileUrl: string }> {
   const drive = getDriveClient();
+  const ownerEmail = process.env.SMTP_USER || 'ledinhphuonglanltv@gmail.com';
 
   try {
+    // 1. Tạo file trống trước (0 bytes) để tránh lỗi quota lưu trữ của Service Account
     const fileMetadata = {
       name: fileName,
       parents: [parentId],
     };
 
-    // Tạo stream từ buffer để upload
+    console.log(`[Drive API] Khởi tạo file trống: ${fileName} trong thư mục ${parentId}`);
+    const emptyFileResponse = await drive.files.create({
+      requestBody: fileMetadata,
+      fields: 'id',
+    });
+
+    const fileId = emptyFileResponse.data.id;
+    if (!fileId) {
+      throw new Error('Không thể tạo file trống trên Google Drive.');
+    }
+
+    // 2. Chuyển ngay quyền sở hữu file trống sang cho Khầy để tính quota vào tài khoản của Khầy
+    await transferOwnership(fileId, ownerEmail);
+
+    // 3. Thực hiện update nội dung file thật (Buffer) vào file trống vừa tạo
+    console.log(`[Drive API] Upload nội dung file thực tế vào file ID: ${fileId}`);
     const { Readable } = require('stream');
     const media = {
       mimeType: mimeType,
       body: Readable.from(fileBuffer),
     };
 
-    const response = await drive.files.create({
-      requestBody: fileMetadata,
+    const updateResponse = await drive.files.update({
+      fileId: fileId,
       media: media,
       fields: 'id, webViewLink',
     });
 
-    const fileId = response.data.id;
-    const fileUrl = response.data.webViewLink;
-
-    if (!fileId || !fileUrl) {
-      throw new Error('Upload failed - file ID or URL not returned');
+    const fileUrl = updateResponse.data.webViewLink;
+    if (!fileUrl) {
+      throw new Error('Upload nội dung thất bại - không lấy được URL.');
     }
 
-    // Phân quyền cho bất cứ ai có link đều có thể xem được (để BGH click xem nhanh)
+    // 4. Phân quyền đọc cho bất cứ ai có link để Ban Giám Hiệu và Khối trưởng xem được giáo án
     try {
       await drive.permissions.create({
         fileId: fileId,
@@ -153,7 +197,7 @@ export async function uploadFile(
         },
       });
     } catch (permError) {
-      console.warn('Could not set public read permissions for file:', permError);
+      console.warn('Không thể cài đặt quyền xem công khai cho file:', permError);
     }
 
     return { fileId, fileUrl };
