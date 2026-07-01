@@ -65,7 +65,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
     // 1. Khởi tạo danh sách giáo viên thuộc khối
     const gradeSuffix = user.grade || 'Khối 1';
     const mockTeachers: TeacherData[] = [
-      { id: 't1', fullName: 'Nguyễn Văn An', email: 'an.nv@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/NguyenVanAn` },
+      { id: 't1', fullName: 'Nguyễn Văn An', email: 'ledinhphuonglanltv@gmail.com', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/NguyenVanAn` },
       { id: 't2', fullName: 'Lê Thị Bình', email: 'binh.lt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/LeThiBinh` },
       { id: 't3', fullName: 'Phạm Hồng Sơn', email: 'son.ph@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/PhamHongSon` },
       { id: 't4', fullName: 'Trần Thị Diệu', email: 'dieu.tt@school.edu.vn', driveFolder: `Drive/QMS-EDU/${gradeSuffix}/TranThiDieu` },
