@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { GRADES, EVALUATION_LEVELS, EVALUATION_COLORS } from '@/constants/roles';
 import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/components/common/Toast';
 
 interface EliteDocument {
   id: string;
@@ -18,6 +19,7 @@ interface EliteDocument {
 }
 
 export default function EliteLibraryPage() {
+  const { showToast } = useToast();
   const [library, setLibrary] = useState<EliteDocument[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState<string>('all');
@@ -27,8 +29,10 @@ export default function EliteLibraryPage() {
   const loadEliteLessons = async () => {
     setLoading(true);
     try {
-      // Truy vấn dữ liệu submissions có is_elite = true từ Supabase
-      const { data: dbElites, error } = await supabase
+      // 1. Thử truy vấn đầy đủ các cột mới
+      let dbElites: any[] | null = null;
+      
+      const { data, error } = await supabase
         .from('submissions')
         .select(`
           id,
@@ -46,7 +50,31 @@ export default function EliteLibraryPage() {
         `)
         .eq('is_elite', true);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('[Library] Thiếu cột mới hoặc lỗi query, tự động chạy chế độ dự phòng (fallback)...', error.message);
+        
+        // 2. Chế độ dự phòng (fallback): Query không có các cột elite_file_name/url mới để tránh sập trang
+        const fallbackRes = await supabase
+          .from('submissions')
+          .select(`
+            id,
+            teacher_id,
+            week_number,
+            bgh_rating,
+            bgh_feedback,
+            bgh_rated_at,
+            profiles:teacher_id (
+              full_name,
+              grade
+            )
+          `)
+          .eq('is_elite', true);
+
+        if (fallbackRes.error) throw fallbackRes.error;
+        dbElites = fallbackRes.data;
+      } else {
+        dbElites = data;
+      }
 
       // Map dữ liệu database sang cấu trúc EliteDocument
       const dbFormattedElites: EliteDocument[] = (dbElites || []).map((sub: any) => ({
@@ -63,8 +91,9 @@ export default function EliteLibraryPage() {
       }));
 
       setLibrary(dbFormattedElites);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Lỗi tải kho học liệu vàng:', err);
+      showToast(`Không thể tải dữ liệu học liệu vàng: ${err.message || err}`, 'error');
     } finally {
       setLoading(false);
     }
