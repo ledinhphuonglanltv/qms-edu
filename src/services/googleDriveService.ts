@@ -290,3 +290,31 @@ export async function deleteFile(fileId: string): Promise<void> {
     throw error;
   }
 }
+
+/**
+ * Chia sẻ tệp tin công khai cho bất kỳ ai có liên kết (anyone with link can view)
+ */
+export async function shareFilePublicly(fileId: string): Promise<void> {
+  if (webAppUrl) {
+    try {
+      await callWebApp('shareFile', { fileId });
+      return;
+    } catch (err) {
+      console.warn(`[Apps Script] Không thể chia sẻ file ${fileId} qua Web App:`, err);
+    }
+  }
+
+  const drive = getDriveClient();
+  try {
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    });
+    console.log(`[Drive API] Đã chia sẻ công khai thành công file: ${fileId}`);
+  } catch (error: any) {
+    console.error(`Error sharing file ${fileId} publicly:`, error.message || error);
+  }
+}

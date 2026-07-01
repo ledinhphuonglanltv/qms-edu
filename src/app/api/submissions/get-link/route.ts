@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabaseClient';
-import { findFolder, listFilesInFolder } from '@/services/googleDriveService';
+import { findFolder, listFilesInFolder, shareFilePublicly } from '@/services/googleDriveService';
 
 export async function GET(req: NextRequest) {
   try {
@@ -61,6 +61,12 @@ export async function GET(req: NextRequest) {
     }
 
     if (matchedFile && matchedFile.url && matchedFile.url !== '#') {
+      // Tự động mở khóa quyền xem công khai (anyone with link can view) cho tệp vinh danh
+      try {
+        await shareFilePublicly(matchedFile.id);
+      } catch (e) {
+        console.warn('[GetLink API] Không thể share file công khai:', e);
+      }
       // Chuyển hướng người dùng trực tiếp tới URL thật của file trên Google Drive
       return NextResponse.redirect(matchedFile.url);
     }
