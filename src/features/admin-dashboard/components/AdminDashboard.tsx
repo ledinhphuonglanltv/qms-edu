@@ -82,7 +82,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           id: configResult.data.id,
           school_year: configResult.data.school_year || '',
           start_date: configResult.data.start_date || '',
-          google_drive_root_folder_id: configResult.data.google_drive_root_folder_id || '',
+          google_drive_root_folder_id: configResult.data.google_root_folder_id || '',
         });
       }
     } catch (err) {

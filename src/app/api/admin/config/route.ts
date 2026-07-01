@@ -64,8 +64,7 @@ export async function POST(req: NextRequest) {
     const configData: any = {
       school_year: schoolYear,
       start_date: startDate,
-      google_drive_root_folder_id: googleDriveRootFolderId,
-      updated_at: new Date().toISOString()
+      google_root_folder_id: googleDriveRootFolderId,
     };
 
     let result;

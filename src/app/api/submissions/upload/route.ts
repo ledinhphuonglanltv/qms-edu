@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle();
 
-    const rootDriveId = config?.google_drive_root_folder_id || '17CFaCERq_F-EMxyi7oD6BFvqqxe57356';
+    const rootDriveId = config?.google_root_folder_id || '17CFaCERq_F-EMxyi7oD6BFvqqxe57356';
     const schoolYear = config?.school_year || '2026-2027';
 
     // 2. Lấy thông tin profiles của giáo viên để lấy drive_folder_id
