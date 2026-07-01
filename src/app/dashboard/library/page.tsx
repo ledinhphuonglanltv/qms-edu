@@ -236,9 +236,10 @@ export default function EliteLibraryPage() {
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh sách học liệu vinh danh:</div>
                     {parseEliteFiles(doc.fileName, doc.url).map((file, idx) => {
                       const hasRealUrl = file.url && file.url !== '#';
+                      // Nếu thiếu URL trong DB, trỏ tới API get-link để tự động quét Drive và Redirect thời gian thực
                       const fileUrl = hasRealUrl 
                         ? file.url 
-                        : `https://drive.google.com/drive/search?q=${encodeURIComponent(file.name)}`;
+                        : `/api/submissions/get-link?teacherId=${doc.teacherId}&weekNumber=${doc.weekNumber}&fileName=${encodeURIComponent(file.name)}`;
 
                       return (
                         <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-300 bg-slate-50 text-xs">
@@ -258,7 +259,7 @@ export default function EliteLibraryPage() {
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-black cursor-pointer transition-colors"
                           >
-                            {hasRealUrl ? '📥 Tải về' : '🔍 Tìm Drive'}
+                            📥 Tải về
                           </a>
                         </div>
                       );

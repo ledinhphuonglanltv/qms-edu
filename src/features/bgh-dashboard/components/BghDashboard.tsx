@@ -242,6 +242,12 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     e.preventDefault();
     if (!randomTeacher) return;
 
+    // Ngăn chặn vinh danh khi không có tệp tin hoặc Drive chưa quét xong
+    if (isElite && selectedEliteFiles.length === 0 && scannedFiles.length === 0) {
+      showToast('Thầy/Cô vui lòng đợi hệ thống quét xong tệp tin trên Drive để chọn học liệu vinh danh nhé!', 'warning');
+      return;
+    }
+
     setIsSaving(true);
     const evaluationWeek = selectedWeek === 'all' ? currentWeek : selectedWeek;
     
