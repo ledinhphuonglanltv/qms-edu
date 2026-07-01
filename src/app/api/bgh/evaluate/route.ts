@@ -13,7 +13,9 @@ export async function POST(req: NextRequest) {
       bghFeedback, 
       bghId, 
       isElite,
-      criteriaRatings
+      criteriaRatings,
+      eliteFileName,
+      eliteFileUrl
     } = body;
 
     if (!teacherId || !weekNumber || !bghRating || !bghId) {
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[BGH API] Lưu đánh giá cho giáo viên ${teacherId}, Tuần ${weekNumber}, Xếp loại: ${bghRating}...`);
 
-    // 1. Lưu kết quả đánh giá (bao gồm cả 6 tiêu chí chi tiết) vào bảng submissions của Supabase
+    // 1. Lưu kết quả đánh giá (bao gồm cả 6 tiêu chí chi tiết và thông tin file học liệu vàng) vào bảng submissions
     const { data: submission, error: subErr } = await supabase
       .from('submissions')
       .upsert({
@@ -41,7 +43,9 @@ export async function POST(req: NextRequest) {
         criteria_phuong_phap: criteriaRatings?.['phuong_phap'] || 'Đạt',
         criteria_thiet_bi: criteriaRatings?.['thiet_bi'] || 'Đạt',
         criteria_danh_gia: criteriaRatings?.['danh_gia'] || 'Đạt',
-        criteria_trinh_bay: criteriaRatings?.['trinh_bay'] || 'Đạt'
+        criteria_trinh_bay: criteriaRatings?.['trinh_bay'] || 'Đạt',
+        elite_file_name: eliteFileName || null,
+        elite_file_url: eliteFileUrl || null
       }, {
         onConflict: 'teacher_id,week_number,school_year'
       })
@@ -91,7 +95,6 @@ export async function POST(req: NextRequest) {
         }
       } catch (mailErr) {
         console.error('[BGH API] Lỗi trong quá trình gửi mail:', mailErr);
-        // Không throw lỗi mail để tránh làm gián đoạn quá trình lưu DB thành công
       }
     }
 

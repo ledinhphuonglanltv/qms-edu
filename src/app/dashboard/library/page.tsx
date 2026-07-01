@@ -27,35 +27,7 @@ export default function EliteLibraryPage() {
   const loadEliteLessons = async () => {
     setLoading(true);
     try {
-      // 1. Lấy cấu hình demo dự phòng
-      const initialLibrary: EliteDocument[] = [
-        {
-          id: 'mock_1',
-          teacherId: 't2',
-          teacherName: 'Lê Thị Bình',
-          grade: 'Khối 1',
-          weekNumber: 2,
-          fileName: 'KHBD_Tuan02_LeThiBinh_PhepCongTrongPhamVi10.docx',
-          url: '#',
-          rating: EVALUATION_LEVELS.XUAT_SAC,
-          feedback: 'Thiết kế các hoạt động học cực kỳ sáng tạo, kích thích tư duy toán học cho học sinh tiểu học thông qua trò chơi.',
-          selectedAt: '2026-09-15T09:00:00Z',
-        },
-        {
-          id: 'mock_2',
-          teacherId: 't5',
-          teacherName: 'Hoàng Văn Hùng',
-          grade: 'Khối 2',
-          weekNumber: 1,
-          fileName: 'KHBD_Tuan01_HoangVanHung_TuVungTiengAnhChuDeGiaDinh.docx',
-          url: '#',
-          rating: EVALUATION_LEVELS.TOT,
-          feedback: 'Khai thác xuất sắc công nghệ thông tin và học liệu số thông qua slide bài giảng đẹp mắt.',
-          selectedAt: '2026-09-16T14:30:00Z',
-        },
-      ];
-
-      // 2. Truy vấn dữ liệu submissions có is_elite = true từ Supabase
+      // Truy vấn dữ liệu submissions có is_elite = true từ Supabase
       const { data: dbElites, error } = await supabase
         .from('submissions')
         .select(`
@@ -65,6 +37,8 @@ export default function EliteLibraryPage() {
           bgh_rating,
           bgh_feedback,
           bgh_rated_at,
+          elite_file_name,
+          elite_file_url,
           profiles:teacher_id (
             full_name,
             grade
@@ -74,22 +48,21 @@ export default function EliteLibraryPage() {
 
       if (error) throw error;
 
-      // 3. Map dữ liệu database
+      // Map dữ liệu database sang cấu trúc EliteDocument
       const dbFormattedElites: EliteDocument[] = (dbElites || []).map((sub: any) => ({
         id: sub.id,
         teacherId: sub.teacher_id,
         teacherName: sub.profiles?.full_name || 'Giáo viên',
         grade: sub.profiles?.grade || 'Khối 1',
         weekNumber: sub.week_number,
-        fileName: `KHBD_Tuan${String(sub.week_number).padStart(2, '0')}_${(sub.profiles?.full_name || '').replace(/\s+/g, '')}.docx`,
-        url: '#', // Có thể quét Drive để lấy URL thật nếu cần, hoặc gán liên kết tạm thời
+        fileName: sub.elite_file_name || `KHBD_Tuan${String(sub.week_number).padStart(2, '0')}_${(sub.profiles?.full_name || '').replace(/\s+/g, '')}.docx`,
+        url: sub.elite_file_url || '#',
         rating: sub.bgh_rating || EVALUATION_LEVELS.TOT,
         feedback: sub.bgh_feedback || 'Không có nhận xét.',
         selectedAt: sub.bgh_rated_at || new Date().toISOString()
       }));
 
-      // Gộp dữ liệu mẫu và dữ liệu thật
-      setLibrary([...initialLibrary, ...dbFormattedElites]);
+      setLibrary(dbFormattedElites);
     } catch (err) {
       console.error('Lỗi tải kho học liệu vàng:', err);
     } finally {

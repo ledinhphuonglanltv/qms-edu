@@ -228,6 +228,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
     
     if (isReal && user.id) {
       try {
+        const eliteFile = scannedFiles.find(f => f.type === FILE_TYPES.KHBD);
         const response = await fetch('/api/bgh/evaluate', {
           method: 'POST',
           headers: {
@@ -241,7 +242,9 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
             bghFeedback: bghFeedback,
             bghId: user.id,
             isElite: isElite,
-            criteriaRatings: criteriaRatings
+            criteriaRatings: criteriaRatings,
+            eliteFileName: eliteFile?.name || null,
+            eliteFileUrl: eliteFile?.url || null
           }),
         });
 
