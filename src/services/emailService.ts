@@ -237,3 +237,68 @@ export async function sendDeadlineReminderEmail(
   await sendEmail({ to: teacherEmail, subject, html });
 }
 
+/**
+ * Gửi email thông báo kết quả nhận xét/đánh giá riêng tư của Ban Giám Hiệu tới Giáo viên
+ */
+export async function sendBghEvaluationEmail(
+  teacherEmail: string,
+  teacherName: string,
+  weekNumber: number,
+  bghRating: string,
+  bghFeedback: string,
+  criteriaText: string
+): Promise<void> {
+  const subject = `[QMS-EDU] Ban Giám Hiệu thông báo kết quả nhận xét, đánh giá học liệu Tuần ${weekNumber}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #edf2f7; border-radius: 8px; color: #1a202c; background-color: #ffffff;">
+      <div style="text-align: center; border-bottom: 2px solid #4a5568; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="color: #2d3748; margin: 0; font-size: 20px;">Hệ thống QMS-EDU</h2>
+        <span style="font-size: 12px; color: #718096;">Thanh tra chất lượng học liệu Ban Giám Hiệu</span>
+      </div>
+      
+      <p style="font-size: 16px; font-weight: bold; margin-bottom: 15px;">Kính gửi Thầy/Cô ${teacherName},</p>
+      
+      <p style="line-height: 1.6; margin-bottom: 15px;">
+        Ban Giám Hiệu nhà trường đã tiến hành thanh tra chất lượng học liệu giảng dạy của Thầy/Cô trong **Tuần ${weekNumber}** và gửi kết quả đánh giá thi đua:
+      </p>
+      
+      <div style="background-color: #f7fafc; padding: 15px; border-left: 4px solid #4a5568; margin-bottom: 20px; border-radius: 4px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 5px 0; color: #4a5568; width: 180px;"><strong>Tuần dạy học:</strong></td>
+            <td style="padding: 5px 0;">Tuần ${weekNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: #4a5568;"><strong>Xếp loại chất lượng:</strong></td>
+            <td style="padding: 5px 0; color: #2b6cb0; font-weight: bold;">${bghRating.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: #4a5568; vertical-align: top;"><strong>Nhận xét / Góp ý:</strong></td>
+            <td style="padding: 5px 0; color: #2d3748; font-style: italic;">
+              "${bghFeedback}"
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <h4 style="color: #4a5568; margin-bottom: 10px; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; font-size: 13px;">ĐIỂM CHI TIẾT THEO 6 TIÊU CHÍ THANH TRA:</h4>
+      <div style="background-color: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; color: #4a5568; line-height: 1.8; margin-bottom: 20px;">
+        ${criteriaText}
+      </div>
+      
+      <p style="line-height: 1.6; margin-bottom: 20px; font-size: 13px;">
+        Kết quả đánh giá này đã được bảo mật và lưu trữ vào cơ sở dữ liệu làm tiêu chí thi đua thi đua chuyên môn của Thầy/Cô. Thầy/Cô có thể đăng nhập QMS-EDU để xem nhận xét chi tiết.
+      </p>
+      
+      <div style="border-top: 1px solid #edf2f7; padding-top: 15px; font-size: 12px; color: #a0aec0; text-align: center;">
+        <p style="margin: 0 0 5px 0;">Email này được gửi bảo mật riêng tư tới giáo viên tương ứng.</p>
+        <p style="margin: 0;">Vui lòng không trả lời email này.</p>
+      </div>
+    </div>
+  `;
+
+  await sendEmail({ to: teacherEmail, subject, html });
+}
+
+

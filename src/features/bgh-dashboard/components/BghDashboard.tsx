@@ -201,7 +201,8 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
             bghRating: bghRating,
             bghFeedback: bghFeedback,
             bghId: user.id,
-            isElite: isElite
+            isElite: isElite,
+            criteriaRatings: criteriaRatings
           }),
         });
 
