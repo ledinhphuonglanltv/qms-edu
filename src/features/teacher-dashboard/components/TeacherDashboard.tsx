@@ -65,6 +65,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
   // Lưu trữ các bản nộp tuần của giáo viên này
   const [submissions, setSubmissions] = useState<{ [key: number]: DemoSubmission }>({});
+  const [deadlineConfig, setDeadlineConfig] = useState<any>(null);
 
   const isReal = !!user.id;
 
@@ -183,6 +184,21 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
       }
     }
   }, [user.fullName, user.id]);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const res = await fetch('/api/admin/config');
+        if (res.ok) {
+          const result = await res.json();
+          setDeadlineConfig(result.data);
+        }
+      } catch (e) {
+        console.error('Không thể load cấu hình hạn nộp:', e);
+      }
+    };
+    loadConfig();
+  }, []);
 
   // Đồng bộ form khi đổi tuần ở chế độ demo
   useEffect(() => {
@@ -384,6 +400,40 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
   };
 
   const selectedWeekSubmission = submissions[selectedWeek];
+  
+  const getSubmissionStatus = () => {
+    const driveFiles = selectedWeekSubmission?.files || [];
+    
+    // Đếm file thực tế quét được từ Drive của tuần này
+    const khbdCount = driveFiles.filter(f => f.type === FILE_TYPES.KHBD).length;
+    const khgdCount = driveFiles.filter(f => f.type === FILE_TYPES.KHGD).length;
+    const dctdCount = driveFiles.filter(f => f.type === FILE_TYPES.DCTD).length;
+
+    // Đọc số lượng file yêu cầu từ cấu hình hệ thống
+    const reqKHBD = deadlineConfig?.khbd_required_files !== null && deadlineConfig?.khbd_required_files !== undefined ? Number(deadlineConfig.khbd_required_files) : 2;
+    const reqKHGD = deadlineConfig?.khgd_required_files !== null && deadlineConfig?.khgd_required_files !== undefined ? Number(deadlineConfig.khgd_required_files) : 1;
+    const reqDCTD = deadlineConfig?.dctd_required_files !== null && deadlineConfig?.dctd_required_files !== undefined ? Number(deadlineConfig.dctd_required_files) : 1;
+
+    const totalUploaded = khbdCount + khgdCount + dctdCount;
+    const totalRequired = reqKHBD + reqKHGD + reqDCTD;
+    
+    const isComplete = khbdCount >= reqKHBD && khgdCount >= reqKHGD && dctdCount >= reqDCTD;
+    const hasAny = totalUploaded > 0;
+
+    return {
+      isComplete,
+      hasAny,
+      totalUploaded,
+      totalRequired,
+      khbdCount,
+      reqKHBD,
+      khgdCount,
+      reqKHGD,
+      dctdCount,
+      reqDCTD
+    };
+  };
+
   const dateRange = getWeekDateRange(selectedWeek, schoolStartDate);
 
   return (
@@ -496,19 +546,35 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             {/* Trạng thái nộp học liệu */}
             <div className="flex flex-col gap-1 items-start md:items-end">
               <span className="text-[10px] text-slate-400 font-bold uppercase">Trạng thái nộp bài</span>
-              {!selectedWeekSubmission?.submittedAt ? (
-                <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-200 bg-red-50 text-red-600 shadow-sm">
-                  Chưa nộp báo cáo
-                </span>
-              ) : selectedWeekSubmission.leadStatus === 'incomplete' ? (
-                <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-orange-200 bg-orange-50 text-orange-600 shadow-sm animate-pulse">
-                  ⚠️ Khối trưởng yêu cầu bổ sung
-                </span>
-              ) : (
-                <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm">
-                  ✓ Đã hoàn thành nộp
-                </span>
-              )}
+              {(() => {
+                const subStatus = getSubmissionStatus();
+                if (!subStatus.hasAny) {
+                  return (
+                    <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-red-200 bg-red-50 text-red-650 shadow-sm">
+                      ❌ Chưa nộp báo cáo
+                    </span>
+                  );
+                }
+                if (!subStatus.isComplete) {
+                  return (
+                    <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-orange-200 bg-orange-50 text-orange-600 shadow-sm animate-pulse">
+                      ⚠️ Nộp thiếu học liệu (Mới nộp {subStatus.totalUploaded}/{subStatus.totalRequired} file)
+                    </span>
+                  );
+                }
+                if (selectedWeekSubmission?.leadStatus === 'incomplete') {
+                  return (
+                    <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-orange-200 bg-orange-50 text-orange-600 shadow-sm">
+                      ⚠️ Khối trưởng yêu cầu bổ sung
+                    </span>
+                  );
+                }
+                return (
+                  <span className="px-3 py-1.5 text-xs font-bold rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 shadow-sm">
+                    ✓ Đã hoàn thành nộp
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
