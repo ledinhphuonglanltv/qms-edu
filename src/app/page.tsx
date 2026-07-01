@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { supabase } from '@/services/supabaseClient';
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -9,13 +10,20 @@ export default function Home() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    // Giả lập hoặc gọi Supabase Auth
-    // supabase.auth.signInWithOAuth({ provider: 'google' })
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          // Sau khi login Google thành công sẽ redirect về trang dashboard
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('Lỗi đăng nhập Google:', err);
+      alert(`Đăng nhập thất bại: ${err.message || 'Lỗi không xác định.'}`);
       setLoading(false);
-      // Nếu có Supabase sẽ chuyển hướng, còn hiện tại thông báo demo
-      alert('Hệ thống đang chờ kết nối Supabase của Khầy. Hãy click vào "Chế độ dùng thử (Demo)" bên dưới để trải nghiệm ngay giao diện!');
-    }, 1000);
+    }
   };
 
   const selectDemoRole = (role: string) => {

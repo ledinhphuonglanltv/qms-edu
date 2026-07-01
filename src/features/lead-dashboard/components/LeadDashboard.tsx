@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { FILE_TYPES, FILE_TYPE_LABELS, EVALUATION_LEVELS, EVALUATION_COLORS } from '@/constants/roles';
 import { getCurrentWeek, getWeekDateRange, formatDate } from '@/utils/weekCalculator';
+import { supabase } from '@/services/supabaseClient';
 
 interface LeadDashboardProps {
   user: {
@@ -188,50 +189,112 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
   };
 
   // Xác nhận nộp đủ và gửi email SMTP
-  const submitVerification = (status: 'verified' | 'incomplete') => {
+  const submitVerification = async (status: 'verified' | 'incomplete') => {
     if (!selectedTeacher) return;
     setIsSubmitting(true);
     setSmtpLog(null);
 
     const sub = submissions[selectedTeacher.id];
     
-    setTimeout(() => {
-      // 1. Cập nhật trạng thái database giả lập
-      const updatedSub: DemoSubmission = {
-        ...sub,
-        leadStatus: status,
-        leadNote: verificationNote,
-      };
+    // Kiểm tra xem có đang chạy trên tài khoản thật có ID không
+    const isReal = 'id' in user && !!user.id;
 
-      const newSubmissions = {
-        ...submissions,
-        [selectedTeacher.id]: updatedSub,
-      };
+    if (isReal) {
+      try {
+        // 1. Gọi API gửi mail SMTP thật ở server-side
+        const emailResponse = await fetch('/api/mail', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            teacherEmail: selectedTeacher.email,
+            teacherName: selectedTeacher.fullName,
+            weekNumber: selectedWeek,
+            grade: user.grade,
+            leadName: user.fullName,
+            status: status,
+            note: verificationNote,
+          }),
+        });
 
-      setSubmissions(newSubmissions);
-      const gradeSuffix = user.grade || 'Khối 1';
-      localStorage.setItem(`qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`, JSON.stringify(newSubmissions));
+        const emailResult = await emailResponse.json();
+        if (!emailResponse.ok) {
+          throw new Error(emailResult.error || 'Lỗi gửi email.');
+        }
 
-      // 2. Giả lập gửi SMTP mail qua tài khoản của trường
-      const titlePrefix = status === 'verified' ? '[QMS-EDU] Xác nhận' : '[QMS-EDU] Yêu cầu bổ sung';
-      setSmtpLog(`
+        // 2. Lưu trạng thái nộp bài vào cơ sở dữ liệu Supabase thật
+        const { error } = await supabase.from('submissions').upsert({
+          teacher_id: selectedTeacher.id,
+          week_number: selectedWeek,
+          school_year: '2026-2027', // Cần đồng bộ theo năm học thực tế
+          lead_status: status,
+          lead_note: verificationNote,
+          lead_verified_at: new Date().toISOString(),
+          lead_id: (user as any).id, // ID của Khối trưởng
+        });
+
+        if (error) throw error;
+
+        // Cập nhật giao diện
+        const updatedSub: DemoSubmission = {
+          ...sub,
+          leadStatus: status,
+          leadNote: verificationNote,
+        };
+
+        setSubmissions(prev => ({
+          ...prev,
+          [selectedTeacher.id]: updatedSub,
+        }));
+
+        setSuccessMsg(`Đã duyệt và gửi email thông báo thật thành công tới Thầy/Cô ${selectedTeacher.fullName}!`);
+      } catch (err: any) {
+        console.error('Lỗi duyệt báo cáo:', err);
+        alert(`Duyệt thất bại: ${err.message || 'Lỗi kết nối mạng.'}`);
+      } finally {
+        setIsSubmitting(false);
+        setSelectedTeacher(null);
+        setTimeout(() => setSuccessMsg(null), 5000);
+      }
+    } else {
+      // Chế độ dùng thử (Demo Mode)
+      setTimeout(() => {
+        const updatedSub: DemoSubmission = {
+          ...sub,
+          leadStatus: status,
+          leadNote: verificationNote,
+        };
+
+        const newSubmissions = {
+          ...submissions,
+          [selectedTeacher.id]: updatedSub,
+        };
+
+        setSubmissions(newSubmissions);
+        const gradeSuffix = user.grade || 'Khối 1';
+        localStorage.setItem(`qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`, JSON.stringify(newSubmissions));
+
+        const titlePrefix = status === 'verified' ? '[QMS-EDU] Xác nhận' : '[QMS-EDU] Yêu cầu bổ sung';
+        setSmtpLog(`
 [SMTP Server] Connecting to smtp.gmail.com:587...
 [SMTP Server] Authenticating as school.admin@school.edu.vn...
 [SMTP Mail] Sending mail to: ${selectedTeacher.email}
 [SMTP Mail] Subject: ${titlePrefix} hoàn thành nộp tài liệu tuần ${selectedWeek}
 [SMTP Mail] Body HTML: Gửi giáo viên ${selectedTeacher.fullName}. Nhận xét: "${verificationNote || 'Không có'}"
 [SMTP Server] Mail sent successfully! Message-ID: <${Math.random().toString(36).substring(7)}@gmail.com>
-      `.trim());
+        `.trim());
 
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setSelectedTeacher(null);
-        setSmtpLog(null);
-        setSuccessMsg(`Đã xác nhận trạng thái báo cáo tuần ${selectedWeek} cho giáo viên ${selectedTeacher.fullName}!`);
-        setTimeout(() => setSuccessMsg(null), 5000);
-      }, 1500);
+        setTimeout(() => {
+          setIsSubmitting(false);
+          setSelectedTeacher(null);
+          setSmtpLog(null);
+          setSuccessMsg(`Đã xác nhận trạng thái báo cáo tuần ${selectedWeek} cho giáo viên ${selectedTeacher.fullName}!`);
+          setTimeout(() => setSuccessMsg(null), 5000);
+        }, 1500);
 
-    }, 1000);
+      }, 1000);
+    }
   };
 
   const dateRange = getWeekDateRange(selectedWeek, schoolStartDate);

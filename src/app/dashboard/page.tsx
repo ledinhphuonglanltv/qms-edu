@@ -6,24 +6,28 @@ import TeacherDashboard from '@/features/teacher-dashboard/components/TeacherDas
 import LeadDashboard from '@/features/lead-dashboard/components/LeadDashboard';
 import BghDashboard from '@/features/bgh-dashboard/components/BghDashboard';
 import { UserRole, UserStatus } from '@/constants/roles';
+import { supabase } from '@/services/supabaseClient';
 
 interface DemoUser {
+  id?: string;
   fullName: string;
   role: UserRole;
   grade: string;
   status: UserStatus;
+  email?: string;
 }
 
 export default function DashboardPage() {
   const [user, setUser] = useState<DemoUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRealAuth, setIsRealAuth] = useState(false);
 
   useEffect(() => {
     // 1. Kiểm tra xem có đang chạy Demo Mode hay không
     const demoRole = localStorage.getItem('qms_demo_role');
     const demoName = localStorage.getItem('qms_user_name');
     const demoGrade = localStorage.getItem('qms_user_grade');
-    const demoStatus = localStorage.getItem('qms_user_status') as UserStatus || 'approved'; // Mặc định demo duyệt luôn để test, có thể chỉnh sửa
+    const demoStatus = localStorage.getItem('qms_user_status') as UserStatus || 'approved';
 
     if (demoRole) {
       setUser({
@@ -32,39 +36,136 @@ export default function DashboardPage() {
         grade: demoGrade || '',
         status: demoStatus,
       });
+      setIsRealAuth(false);
       setLoading(false);
       return;
     }
 
-    // 2. Nếu không có demo role, giả lập đang chờ kết nối hoặc check session từ Supabase
-    // (Khi có Supabase thật sẽ thay thế đoạn này bằng check session auth thực tế)
-    setTimeout(() => {
-      // Giả định chưa đăng nhập thì đẩy về Home
-      // window.location.href = '/';
-      setUser(null);
-      setLoading(false);
-    }, 1000);
+    // 2. Chế độ Supabase Auth thật
+    const checkUserSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        setIsRealAuth(true);
+
+        // Truy vấn thông tin profile của giáo viên từ database
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 nghĩa là không tìm thấy bản ghi (no rows returned), đây là trường hợp user mới chưa tạo profile
+          console.error('Lỗi tải hồ sơ:', error);
+        }
+
+        if (profile) {
+          setUser({
+            id: profile.id,
+            fullName: profile.full_name || '',
+            role: profile.role as UserRole,
+            grade: profile.grade || '',
+            status: profile.status as UserStatus,
+            email: profile.email,
+          });
+        } else {
+          // User mới đăng nhập Google lần đầu, chưa khai báo Họ tên & Khối
+          setUser({
+            id: session.user.id,
+            fullName: '',
+            role: 'teacher', // Mặc định là Giáo viên
+            grade: '',
+            status: 'pending',
+            email: session.user.email,
+          });
+        }
+      } catch (err) {
+        console.error('Lỗi kiểm tra session:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserSession();
+
+    // Lắng nghe sự thay đổi trạng thái đăng nhập của Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      } else if (event === 'SIGNED_IN' && session) {
+        checkUserSession();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const handleRegisterSuccess = (fullName: string, grade: string) => {
-    // Cập nhật state sau khi cập nhật hồ sơ thành công
-    const demoRole = localStorage.getItem('qms_demo_role') as UserRole || 'teacher';
+  const handleRegisterSuccess = async (fullName: string, grade: string) => {
+    setLoading(true);
     
-    // Lưu vào storage cho demo
-    localStorage.setItem('qms_user_name', fullName);
-    localStorage.setItem('qms_user_grade', grade);
-    localStorage.setItem('qms_user_status', 'pending'); // Sau khi gửi sẽ chờ duyệt
+    if (isRealAuth) {
+      // 1. Lưu thông tin thật vào database Supabase
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { error } = await supabase.from('profiles').upsert({
+            id: session.user.id,
+            email: session.user.email,
+            full_name: fullName,
+            grade: grade,
+            role: 'teacher', // Mặc định giáo viên tự đăng ký
+            status: 'pending', // Chờ duyệt thủ công
+            updated_at: new Date().toISOString(),
+          });
 
-    setUser({
-      fullName,
-      role: demoRole,
-      grade,
-      status: 'pending',
-    });
+          if (error) throw error;
+
+          setUser({
+            id: session.user.id,
+            fullName,
+            role: 'teacher',
+            grade,
+            status: 'pending',
+            email: session.user.email || '',
+          });
+        }
+      } catch (err: any) {
+        console.error('Lỗi đăng ký hồ sơ:', err);
+        alert(`Không thể lưu hồ sơ: ${err.message || 'Lỗi kết nối database.'}`);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // 2. Chế độ Demo
+      localStorage.setItem('qms_user_name', fullName);
+      localStorage.setItem('qms_user_grade', grade);
+      localStorage.setItem('qms_user_status', 'pending');
+
+      setUser({
+        fullName,
+        role: 'teacher',
+        grade,
+        status: 'pending',
+      });
+      setLoading(false);
+    }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    if (isRealAuth) {
+      await supabase.auth.signOut();
+    } else {
+      localStorage.clear();
+    }
     window.location.href = '/';
   };
 
@@ -130,13 +231,20 @@ export default function DashboardPage() {
           <div className="pt-4 space-y-3">
             {/* Nút giả lập duyệt nhanh cho Khầy Được test Demo */}
             <button
-              onClick={() => {
-                localStorage.setItem('qms_user_status', 'approved');
-                window.location.reload();
+              onClick={async () => {
+                if (isRealAuth && user.id) {
+                  // Cập nhật lên Supabase thật
+                  setLoading(true);
+                  await supabase.from('profiles').update({ status: 'approved' }).eq('id', user.id);
+                  window.location.reload();
+                } else {
+                  localStorage.setItem('qms_user_status', 'approved');
+                  window.location.reload();
+                }
               }}
-              className="w-full bg-gradient-to-r from-blue-600 to-orange-500 text-white rounded-xl py-3 font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+              className="w-full bg-gradient-to-r from-blue-600 to-orange-500 text-white rounded-xl py-3 font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer text-xs"
             >
-              ⚡ Click nhanh để Duyệt tài khoản (Chỉ có ở Demo)
+              ⚡ Click nhanh để Duyệt tài khoản (Demo & Real DB)
             </button>
             <button
               onClick={handleLogout}
