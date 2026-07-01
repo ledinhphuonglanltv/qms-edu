@@ -113,6 +113,16 @@ export default function EliteLibraryPage() {
     loadEliteLessons();
   }, []);
 
+  const parseEliteFiles = (fileNameStr: string | null, urlStr: string | null) => {
+    if (!fileNameStr) return [];
+    const names = fileNameStr.split(' | ');
+    const urls = urlStr ? urlStr.split(' | ') : [];
+    return names.map((name, index) => ({
+      name,
+      url: urls[index] || '#'
+    }));
+  };
+
   const handleBackToDashboard = () => {
     window.location.href = '/dashboard';
   };
@@ -218,65 +228,60 @@ export default function EliteLibraryPage() {
                   </div>
 
                   <div className="text-[11px] text-slate-500 font-medium">
-                    Tác giả: <strong className="text-slate-800">{doc.teacherName}</strong>
+                    Tác giả: <strong className="text-slate-700">{doc.teacherName}</strong>
                   </div>
 
-                  {/* Danh sách các file được vinh danh (Hỗ trợ đa file và bảo mật link) */}
-                  <div className="space-y-2 pt-1">
-                    {(() => {
-                      const names = doc.fileName ? doc.fileName.split(' | ') : [];
-                      const urls = doc.url ? doc.url.split(' | ') : [];
-                      
-                      return names.map((name, index) => {
-                        const fileUrl = urls[index] || '#';
-                        const hasRealUrl = fileUrl && fileUrl !== '#';
-
-                        return (
-                          <div key={index} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 text-xs hover:border-brand-primary/20 transition-all">
-                            <span className="truncate max-w-[240px] font-bold text-slate-700">
-                              {hasRealUrl ? (
-                                <a 
-                                  href={fileUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-brand-primary hover:underline"
-                                >
-                                  📄 {name}
-                                </a>
-                              ) : (
-                                <span className="text-slate-500">📄 {name}</span>
-                              )}
+                  {/* Danh sách các file học liệu mẫu mực vinh danh thật */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh sách học liệu vinh danh:</div>
+                    {parseEliteFiles(doc.fileName, doc.url).map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 text-xs">
+                        <div className="truncate max-w-[240px] font-bold text-slate-700">
+                          {file.url && file.url !== '#' ? (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-primary hover:underline"
+                            >
+                              📄 {file.name}
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 font-medium">
+                              📄 {file.name}
                             </span>
-
-                            {hasRealUrl ? (
-                              <a
-                                href={fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-black cursor-pointer transition-colors"
-                              >
-                                📥 Tải về
-                              </a>
-                            ) : (
-                              <span className="text-[9px] text-slate-400 font-bold bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1">
-                                🔒 Chờ đồng bộ Drive
-                              </span>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
+                          )}
+                        </div>
+                        {file.url && file.url !== '#' ? (
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[9px] font-black cursor-pointer transition-colors"
+                          >
+                            📥 Tải về
+                          </a>
+                        ) : (
+                          <span className="px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-[9px] font-bold select-none">
+                            🔒 Drive gốc
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600 leading-relaxed italic">
-                    "Góp ý vinh danh của BGH: {doc.feedback}"
-                  </div>
+                  {/* Góp ý nhận xét của BGH */}
+                  {doc.feedback && doc.feedback !== 'Không có nhận xét.' && (
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-650 leading-relaxed italic mt-2">
+                      "Góp ý vinh danh của BGH: {doc.feedback}"
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-medium">
                   <span>Bình chọn vào: {new Date(doc.selectedAt).toLocaleDateString('vi-VN')}</span>
-                  <span className="font-bold text-amber-600 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                    🏆 Học liệu vinh danh
+                  <span className="font-bold text-amber-600 uppercase bg-amber-50 px-2 py-0.5 rounded border border-amber-250">
+                    {parseEliteFiles(doc.fileName, doc.url).length} Học liệu vinh danh
                   </span>
                 </div>
 
