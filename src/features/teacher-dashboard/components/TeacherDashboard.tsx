@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FILE_TYPES, FILE_TYPE_LABELS, EVALUATION_LEVELS, EVALUATION_COLORS } from '@/constants/roles';
 import { getCurrentWeek, getWeekDateRange, formatDate } from '@/utils/weekCalculator';
 import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/components/common/Toast';
 
 interface TeacherDashboardProps {
   user: {
@@ -37,6 +38,7 @@ interface DemoSubmission {
 }
 
 export default function TeacherDashboard({ user, onLogout }: TeacherDashboardProps) {
+  const { showToast } = useToast();
   const schoolStartDate = '2026-09-01'; // Ngày khai giảng giả định
   const currentWeek = getCurrentWeek(schoolStartDate);
   const totalWeeks = 35;
@@ -215,7 +217,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
     // Validate định dạng Word
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (fileExtension !== 'docx' && fileExtension !== 'doc') {
-      alert('Vui lòng chỉ nộp tài liệu định dạng Word (.doc hoặc .docx) theo đúng quy định!');
+      showToast('Vui lòng chỉ nộp tài liệu định dạng Word (.doc hoặc .docx) theo đúng quy định!', 'warning');
       return;
     }
 
@@ -239,17 +241,16 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
         const result = await res.json();
         if (res.ok) {
-          setNotification(`Đã tải lên tệp tin ${type} thành công lên Google Drive!`);
-          setTimeout(() => setNotification(null), 5000);
+          showToast(`Đã tải lên tệp tin ${type} thành công lên Google Drive!`, 'success');
           
           // Tải lại dữ liệu tuần để cập nhật file thật từ Drive
           await loadRealSubmission(selectedWeek);
         } else {
-          alert(`Tải file lên thất bại: ${result.error}`);
+          showToast(`Tải file lên thất bại: ${result.error}`, 'error');
         }
       } catch (err: any) {
         console.error('Lỗi khi upload file:', err);
-        alert(`Lỗi kết nối khi upload file: ${err.message}`);
+        showToast(`Lỗi kết nối khi upload file: ${err.message}`, 'error');
       } finally {
         setUploadingTypes(prev => ({ ...prev, [type]: false }));
       }
@@ -295,17 +296,16 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
         const result = await res.json();
         if (res.ok) {
-          setNotification(`Đã xóa file ${type} thành công trên Google Drive!`);
-          setTimeout(() => setNotification(null), 5000);
+          showToast(`Đã xóa file ${type} thành công trên Google Drive!`, 'success');
           
           // Tải lại dữ liệu tuần
           await loadRealSubmission(selectedWeek);
         } else {
-          alert(`Xóa file thất bại: ${result.error}`);
+          showToast(`Xóa file thất bại: ${result.error}`, 'error');
         }
       } catch (err: any) {
         console.error('Lỗi khi xóa file:', err);
-        alert(`Lỗi kết nối khi xóa file: ${err.message}`);
+        showToast(`Lỗi kết nối khi xóa file: ${err.message}`, 'error');
       } finally {
         setUploadingTypes(prev => ({ ...prev, [type]: false }));
       }
@@ -322,7 +322,7 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
   const handleSendSubmission = async () => {
     const activeFiles = Object.values(files).filter(f => f !== null) as DemoFile[];
     if (activeFiles.length === 0) {
-      alert('Thầy/Cô vui lòng tải lên ít nhất một tài liệu giảng dạy trước khi xác nhận gửi!');
+      showToast('Thầy/Cô vui lòng tải lên ít nhất một tài liệu giảng dạy trước khi xác nhận gửi!', 'warning');
       return;
     }
 
@@ -344,14 +344,13 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
 
         if (error) throw error;
 
-        setNotification(`Đã cập nhật ý kiến và xác nhận nộp báo cáo Tuần ${selectedWeek} thành công tới Khối trưởng!`);
+        showToast(`Đã cập nhật ý kiến và xác nhận nộp báo cáo Tuần ${selectedWeek} thành công tới Khối trưởng!`, 'success');
         await loadRealSubmission(selectedWeek);
       } catch (err: any) {
         console.error('Lỗi khi gửi báo cáo:', err);
-        alert(`Gửi báo cáo thất bại: ${err.message}`);
+        showToast(`Gửi báo cáo thất bại: ${err.message}`, 'error');
       } finally {
         setIsSubmitting(false);
-        setTimeout(() => setNotification(null), 5000);
       }
     } else {
       // Chế độ demo

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FILE_TYPES, FILE_TYPE_LABELS, EVALUATION_LEVELS, EVALUATION_COLORS } from '@/constants/roles';
 import { getCurrentWeek, getWeekDateRange, formatDate } from '@/utils/weekCalculator';
 import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/components/common/Toast';
 
 interface LeadDashboardProps {
   user: {
@@ -43,6 +44,7 @@ interface TeacherData {
 }
 
 export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
+  const { showToast } = useToast();
   const schoolStartDate = '2026-09-01';
   const currentWeek = getCurrentWeek(schoolStartDate);
   const totalWeeks = 35;
@@ -252,13 +254,13 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           });
 
           // Hiển thị thông báo quét thành công
-          alert(`[Drive API] Quét thành công thư mục của Giáo viên ${teacherName}. Phát hiện: ${driveFiles.length} file.`);
+          showToast(`[Drive API] Quét thành công thư mục của Giáo viên ${teacherName}. Phát hiện: ${driveFiles.length} file.`, 'success');
         } else {
-          alert(`Lỗi quét Drive: ${result.error}`);
+          showToast(`Lỗi quét Drive: ${result.error}`, 'error');
         }
       } catch (err: any) {
         console.error('Lỗi khi quét Drive:', err);
-        alert(`Lỗi kết nối khi quét Google Drive: ${err.message}`);
+        showToast(`Lỗi kết nối khi quét Google Drive: ${err.message}`, 'error');
       } finally {
         setScanningId(null);
       }
@@ -295,7 +297,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
         const gradeSuffix = user.grade || 'Khối 1';
         localStorage.setItem(`qms_lead_submissions_w${selectedWeek}_${gradeSuffix}`, JSON.stringify(newSubmissions));
         
-        alert(`[Drive API] Quét thành công thư mục giáo viên ${teacherName}. Phát hiện: ${updatedFiles.length} file.`);
+        showToast(`[Drive API] Quét thành công thư mục giáo viên ${teacherName}. Phát hiện: ${updatedFiles.length} file.`, 'success');
       }, 1500);
     }
   };
@@ -364,14 +366,13 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           }
         }));
 
-        setSuccessMsg(`Đã duyệt báo cáo và gửi email thông báo thành công tới Thầy/Cô ${selectedTeacher.fullName}!`);
+        showToast(`Đã duyệt báo cáo và gửi email thông báo thành công tới Thầy/Cô ${selectedTeacher.fullName}!`, 'success');
       } catch (err: any) {
         console.error('Lỗi duyệt báo cáo:', err);
-        alert(`Kiểm duyệt thất bại: ${err.message || 'Lỗi kết nối.'}`);
+        showToast(`Kiểm duyệt thất bại: ${err.message || 'Lỗi kết nối.'}`, 'error');
       } finally {
         setIsSubmitting(false);
         setSelectedTeacher(null);
-        setTimeout(() => setSuccessMsg(null), 5000);
       }
     } else {
       // Chế độ demo
@@ -405,8 +406,7 @@ export default function LeadDashboard({ user, onLogout }: LeadDashboardProps) {
           setIsSubmitting(false);
           setSelectedTeacher(null);
           setSmtpLog(null);
-          setSuccessMsg(`Đã xác nhận trạng thái báo cáo tuần ${selectedWeek} cho giáo viên ${selectedTeacher.fullName}!`);
-          setTimeout(() => setSuccessMsg(null), 5000);
+          showToast(`Đã xác nhận trạng thái báo cáo tuần ${selectedWeek} cho giáo viên ${selectedTeacher.fullName}!`, 'success');
         }, 1500);
 
       }, 1000);

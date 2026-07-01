@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { UserRole, UserStatus, GRADES } from '@/constants/roles';
 import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/components/common/Toast';
 
 interface Profile {
   id: string;
@@ -41,6 +42,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
     google_drive_root_folder_id: '',
   });
 
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,11 +124,12 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         setProfiles(prev =>
           prev.map(p => (p.id === userId ? { ...p, ...result.data } : p))
         );
+        showToast('Cập nhật trạng thái thành viên thành công!', 'success');
       } else {
-        alert(`Lỗi cập nhật: ${result.error}`);
+        showToast(`Lỗi cập nhật: ${result.error}`, 'error');
       }
     } catch (err: any) {
-      alert(`Lỗi kết nối mạng: ${err.message}`);
+      showToast(`Lỗi kết nối mạng: ${err.message}`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -162,12 +165,12 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
           ...prev,
           id: result.data.id,
         }));
-        alert('Đã lưu cấu hình hệ thống thành công!');
+        showToast('Đã lưu cấu hình hệ thống thành công!', 'success');
       } else {
-        alert(`Lỗi lưu cấu hình: ${result.error}`);
+        showToast(`Lỗi lưu cấu hình: ${result.error}`, 'error');
       }
     } catch (err: any) {
-      alert(`Lỗi kết nối mạng: ${err.message}`);
+      showToast(`Lỗi kết nối mạng: ${err.message}`, 'error');
     } finally {
       setSavingConfig(false);
     }

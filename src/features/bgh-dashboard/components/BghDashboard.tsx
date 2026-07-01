@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { EVALUATION_LEVELS, EVALUATION_COLORS, FILE_TYPES } from '@/constants/roles';
 import { getCurrentWeek } from '@/utils/weekCalculator';
 import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/components/common/Toast';
 
 interface BghDashboardProps {
   user: {
@@ -32,6 +33,7 @@ interface TeacherFile {
 }
 
 export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
+  const { showToast } = useToast();
   const schoolStartDate = '2026-09-01';
   const currentWeek = getCurrentWeek(schoolStartDate);
   const totalWeeks = 35;
@@ -141,7 +143,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
 
     setTimeout(async () => {
       if (filteredTeachers.length === 0) {
-        alert('Khối này chưa có giáo viên nào hoạt động!');
+        showToast('Khối này chưa có giáo viên nào hoạt động!', 'warning');
         setIsSampling(false);
         return;
       }
@@ -224,11 +226,11 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
         }
 
         setSaveSuccess(true);
-        alert(`Đã lưu kết quả thanh tra chất lượng và đánh giá thi đua cho Thầy/Cô ${randomTeacher.fullName} thành công!`);
+        showToast(`Đã lưu kết quả thanh tra chất lượng và đánh giá thi đua cho Thầy/Cô ${randomTeacher.fullName} thành công!`, 'success');
         setRandomTeacher(null);
       } catch (err: any) {
         console.error('Lỗi lưu đánh giá BGH:', err);
-        alert(`Lưu đánh giá thất bại: ${err.message}`);
+        showToast(`Lưu đánh giá thất bại: ${err.message}`, 'error');
       } finally {
         setIsSaving(false);
       }
@@ -257,7 +259,7 @@ export default function BghDashboard({ user, onLogout }: BghDashboardProps) {
           }
         }
         
-        alert(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công!`);
+        showToast(`Đã lưu kết quả kiểm duyệt và đánh giá thi đua cho giáo viên ${randomTeacher.fullName} thành công!`, 'success');
         setRandomTeacher(null);
       }, 1000);
     }

@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Giải pháp báo cáo chất lượng giảng dạy, kế hoạch bài dạy và điều chỉnh sau tiết dạy tích hợp Google Drive và kiểm duyệt thông minh.",
 };
 
+import { ToastProvider } from '@/components/common/Toast';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className="h-full antialiased" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-full bg-slate-50 text-slate-900 font-sans`} suppressHydrationWarning>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );
