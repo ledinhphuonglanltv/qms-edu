@@ -26,14 +26,29 @@ async function isSuperAdmin(req: NextRequest) {
   }
 }
 
-// Hàm chuẩn hóa tiếng Việt thành viết liền không dấu làm tên thư mục Drive
+// Hàm chuẩn hóa tiếng Việt viết liền không dấu làm tên thư mục Giáo viên (ví dụ: DoThiAnhTuyet)
 function removeVietnameseTones(str: string): string {
   return str
-    .normalize('NFD') // Tách các dấu ra khỏi chữ cái gốc
-    .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu
+    .normalize('NFD') // Tách dấu
+    .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D')
     .replace(/[^a-zA-Z0-9]/g, ''); // Chỉ giữ lại chữ cái và số
+}
+
+// Hàm chuẩn hóa tên Khối cho folder Drive (ví dụ: "Khối 1" -> "khoi-1", "Bộ môn đặc thù" -> "bo-mon-dac-thu")
+function formatGradeFolderName(gradeStr: string): string {
+  const raw = gradeStr
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+  
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, '') // Xóa ký tự đặc biệt, giữ khoảng trắng
+    .replace(/\s+/g, '-'); // Đổi khoảng trắng thành gạch ngang
 }
 
 /**
@@ -110,19 +125,18 @@ export async function PATCH(req: NextRequest) {
 
             const rootDriveId = config?.google_root_folder_id || '17CFaCERq_F-EMxyi7oD6BFvqqxe57356';
             
-            // Tên thư mục khối (ví dụ: "khoi-1")
-            const gradeFolderName = userGrade.toLowerCase().replace(/\s+/g, '-');
+            // Tên thư mục khối quy chuẩn (ví dụ: "khoi-1")
+            const gradeFolderName = formatGradeFolderName(userGrade);
             const gradeFolderId = await getOrCreateFolder(gradeFolderName, rootDriveId);
             
-            // Tên thư mục giáo viên không dấu viết liền (ví dụ: "DoThiAnhTuyen")
+            // Tên thư mục giáo viên không dấu viết liền (ví dụ: "DoThiAnhTuyet")
             const teacherFolderName = removeVietnameseTones(currentProfile.full_name || 'GiaoVien');
             const newFolderId = await getOrCreateFolder(teacherFolderName, gradeFolderId);
             
-            console.log(`[Admin API] Đã tạo thành công thư mục Giáo viên ID: ${newFolderId}`);
+            console.log(`[Admin API] Đã tạo/Sử dụng thư mục Giáo viên ID: ${newFolderId}`);
             finalDriveFolderId = newFolderId;
           } catch (driveErr: any) {
             console.error('[Admin API] Lỗi tạo thư mục tự động trên Drive:', driveErr);
-            // Vẫn tiếp tục duyệt để tránh kẹt tài khoản, chỉ ghi log cảnh báo
           }
         }
       }
