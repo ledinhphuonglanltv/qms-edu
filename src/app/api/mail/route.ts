@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
         lead_note: note || '',
         lead_verified_at: new Date().toISOString(),
         lead_id: leadId,
+      }, {
+        onConflict: 'teacher_id,week_number,school_year'
       });
 
     if (dbError) {

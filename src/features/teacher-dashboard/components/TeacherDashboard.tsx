@@ -357,6 +357,8 @@ export default function TeacherDashboard({ user, onLogout }: TeacherDashboardPro
             teacher_note: teacherNote,
             submitted_at: new Date().toISOString(),
             lead_status: 'pending' // Chờ duyệt
+          }, {
+            onConflict: 'teacher_id,week_number,school_year'
           });
 
         if (error) throw error;

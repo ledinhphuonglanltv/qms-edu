@@ -156,6 +156,8 @@ export async function POST(req: NextRequest) {
         teacher_note: teacherNote,
         submitted_at: new Date().toISOString(),
         lead_status: 'pending' // Khi có file mới -> reset chờ duyệt
+      }, {
+        onConflict: 'teacher_id,week_number,school_year'
       });
 
     if (upsertErr) {
